@@ -13,5 +13,5 @@ The worker and client both load connection settings with `ClientEnvConfig.LoadCl
 For production, keep the AppHost pointed at an externally managed Temporal endpoint such as Temporal Cloud. Keep workers always-on for latency-sensitive task queues; use KEDA or Temporal Worker Controller scale-to-zero patterns only when the workload can tolerate worker cold-start latency.
 
 ```bash
-aspire start --project samples/TemporalCommunity.Aspire.Hosting.SampleAppHost/TemporalCommunity.Aspire.Hosting.SampleAppHost.csproj
+aspire start --apphost samples/TemporalCommunity.Aspire.Hosting.SampleAppHost/TemporalCommunity.Aspire.Hosting.SampleAppHost.csproj
 ```

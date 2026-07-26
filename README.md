@@ -59,19 +59,24 @@ Use `AddTemporalCloud` for an externally managed Temporal Cloud namespace. The r
 
 ```csharp
 var temporalAddress = builder.AddParameter("temporal-address");
+var temporalNamespace = builder.AddParameter("temporal-namespace");
 var temporalApiKey = builder.AddParameter("temporal-api-key", secret: true);
+var temporalUiAddress = builder.AddParameter("temporal-ui-address");
 
 var temporal = builder.AddTemporalCloud(
     "temporal",
     temporalAddress,
-    "my-namespace.my-account",
-    apiKey: temporalApiKey);
+    temporalNamespace,
+    temporalApiKey,
+    temporalUiAddress);
 
 builder.AddProject<Projects.Worker>("worker")
     .WithReference(temporal);
 ```
 
-`WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, and `TEMPORAL_API_KEY` when an API key is configured. Consumers should load those values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
+Use Aspire parameters for production configuration, especially `builder.AddParameter("temporal-api-key", secret: true)` for API keys. The string overload is intended for non-secret local or test configuration; do not put production API keys in source.
+
+`WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, and optional `TEMPORAL_UI_ADDRESS` when configured. Consumers should load those values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
 
 ## Production deployment guidance
 
@@ -90,9 +95,12 @@ For Azure Container Apps or Kubernetes, inject Temporal Cloud address, namespace
 The local development server uses an in-memory database by default. To persist state between runs, set Temporal's dev-server database filename:
 
 ```csharp
+var temporalDataDirectory = Path.Combine(AppContext.BaseDirectory, "temporal-data");
+Directory.CreateDirectory(temporalDataDirectory);
+
 var temporal = builder.AddTemporalLocalDevServer("temporal", options =>
 {
-    options.DevServerOptions.DatabaseFilename = "temporal.db";
+    options.DevServerOptions.DatabaseFilename = Path.Combine(temporalDataDirectory, "temporal.db");
 });
 ```
 
