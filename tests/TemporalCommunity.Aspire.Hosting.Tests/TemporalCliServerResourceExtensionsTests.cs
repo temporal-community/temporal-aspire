@@ -113,6 +113,42 @@ public class TemporalCliServerResourceExtensionsTests
         Assert.Contains("http://localhost:8088", args);
     }
 
+    [Fact]
+    public void BuildArgs_IncludesDatabaseFilename_WhenConfigured()
+    {
+        var options = new TemporalResourceOptions();
+        options.DevServerOptions.DatabaseFilename = "/tmp/temporal.db";
+
+        var args = TemporalArgsBuilder.BuildArgs(options);
+
+        var databaseFilenameIndex = Array.IndexOf(args, "--db-filename");
+        Assert.True(databaseFilenameIndex >= 0, "Expected --db-filename flag in args");
+        Assert.Equal("/tmp/temporal.db", args[databaseFilenameIndex + 1]);
+    }
+
+    [Fact]
+    public void BuildArgs_IncludesDatabaseFilename_ForFixedContainerArgs()
+    {
+        var options = new TemporalResourceOptions();
+        options.DevServerOptions.DatabaseFilename = "/home/temporal/temporal.db";
+
+        var args = TemporalArgsBuilder.BuildArgs(options, fixedIpAndPort: true);
+
+        var databaseFilenameIndex = Array.IndexOf(args, "--db-filename");
+        Assert.True(databaseFilenameIndex >= 0, "Expected --db-filename flag in args");
+        Assert.Equal("/home/temporal/temporal.db", args[databaseFilenameIndex + 1]);
+    }
+
+    [Fact]
+    public void BuildArgs_OmitsDatabaseFilename_WhenNotConfigured()
+    {
+        var options = new TemporalResourceOptions();
+
+        var args = TemporalArgsBuilder.BuildArgs(options);
+
+        Assert.DoesNotContain("--db-filename", args);
+    }
+
     // -----------------------------------------------------------------------
     // AddTemporalCliServer — public path tests (PATH-independent via seam)
     // -----------------------------------------------------------------------

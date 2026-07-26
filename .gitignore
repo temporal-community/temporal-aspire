@@ -21,6 +21,7 @@ TestResults/
 
 # Build artifacts
 artifacts/
+samples/.temporal/
 
 # Coding agent / project-local tooling
 skills-lock.json

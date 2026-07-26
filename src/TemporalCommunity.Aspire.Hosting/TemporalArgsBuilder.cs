@@ -57,6 +57,9 @@ internal static class TemporalArgsBuilder
         if (!string.IsNullOrEmpty(options.ApiKey))
             args.AddRange(["--api-key", options.ApiKey]);
 
+        if (!string.IsNullOrEmpty(options.DevServerOptions.DatabaseFilename))
+            args.AddRange(["--db-filename", options.DevServerOptions.DatabaseFilename]);
+
         return args.ToArray();
     }
 }

@@ -53,6 +53,30 @@ var temporal = builder.AddTemporalCliServer();
 
 `AddTemporalDevContainer` requires Docker. `AddTemporalCliServer` requires the Temporal CLI on `PATH`.
 
+## Persist local development state
+
+The local development server uses an in-memory database by default. To persist state between runs, set Temporal's dev-server database filename:
+
+```csharp
+var temporal = builder.AddTemporalLocalDevServer("temporal", options =>
+{
+    options.DevServerOptions.DatabaseFilename = "temporal.db";
+});
+```
+
+For the container-based resource, use a container path and mount a volume:
+
+```csharp
+var temporal = builder.AddTemporalDevContainer("temporal", options =>
+{
+    options.DevServerOptions.DatabaseFilename = "/home/temporal/temporal.db";
+});
+
+temporal.WithVolume("temporal-data", "/home/temporal");
+```
+
+`DevServerOptions` is marked unstable by the Temporal .NET SDK and may change in future SDK versions.
+
 ## Run the sample
 
 This repo includes a runnable Aspire sample with an AppHost, worker, client, and workflow.
