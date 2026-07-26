@@ -75,3 +75,9 @@ pack-verify: pack
     } finally {
       $zip.Dispose()
     }
+
+publish-nuget: pack
+    dotnet nuget push "{{artifacts_dir}}/*.nupkg" \
+        --source "https://api.nuget.org/v3/index.json" \
+        --api-key "$NUGET_API_KEY" \
+        --skip-duplicate
