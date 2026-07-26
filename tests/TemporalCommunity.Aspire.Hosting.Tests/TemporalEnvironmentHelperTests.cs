@@ -177,4 +177,24 @@ public class TemporalEnvironmentHelperTests
         Assert.False(environmentVariables.ContainsKey("TEMPORAL_API_KEY"));
         Assert.False(environmentVariables.ContainsKey("TEMPORAL_UI_ADDRESS"));
     }
+
+    [Fact]
+    public void AddEnvironmentVariables_ForCloud_InjectsParameterizedNamespace()
+    {
+        var environmentVariables = new Dictionary<string, object>();
+        var context = new EnvironmentCallbackContext(
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            environmentVariables,
+            CancellationToken.None);
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var namespaceParameter = appBuilder.AddParameter("temporal-namespace");
+        var options = new TemporalCloudOptions { Namespace = namespaceParameter.Resource };
+
+        TemporalEnvironmentHelper.AddEnvironmentVariables(
+            context,
+            options,
+            "orders.prod.tmprl.cloud:7233");
+
+        Assert.Same(namespaceParameter.Resource, environmentVariables["TEMPORAL_NAMESPACE"]);
+    }
 }

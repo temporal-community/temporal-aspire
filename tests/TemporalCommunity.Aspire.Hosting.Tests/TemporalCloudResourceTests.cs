@@ -8,6 +8,29 @@ namespace TemporalCommunity.Aspire.Hosting.Tests;
 public class TemporalCloudResourceTests
 {
     [Fact]
+    public void AddTemporalCloud_KeepsStringNamespaceCompatibility()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var address = appBuilder.AddParameter("temporal-address");
+
+        var temporal = appBuilder.AddTemporalCloud("temporal", address, "orders.prod");
+
+        Assert.Equal("orders.prod", temporal.Resource.Options.Namespace);
+    }
+
+    [Fact]
+    public void AddTemporalCloud_AcceptsParameterizedNamespace()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var address = appBuilder.AddParameter("temporal-address");
+        var @namespace = appBuilder.AddParameter("temporal-namespace");
+
+        var temporal = appBuilder.AddTemporalCloud("temporal", address, @namespace);
+
+        Assert.Same(@namespace.Resource, temporal.Resource.Options.Namespace);
+    }
+
+    [Fact]
     public void TemporalCloudResource_IsConnectionStringResource_NotServiceDiscoveryResource()
     {
         var resource = new TemporalCloudResource(

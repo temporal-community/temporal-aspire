@@ -64,6 +64,35 @@ public static class TemporalCloudResourceExtensions
     }
 
     /// <summary>
+    /// Adds an externally managed Temporal Cloud namespace to the distributed application using parameter resources.
+    /// </summary>
+    /// <param name="builder">The distributed application builder.</param>
+    /// <param name="name">The resource name.</param>
+    /// <param name="address">A parameter containing the Temporal Cloud host:port address.</param>
+    /// <param name="namespace">A parameter containing the Temporal Cloud namespace.</param>
+    /// <param name="apiKey">Optional parameter containing the API key to inject into dependent resources.</param>
+    /// <param name="uiAddress">Optional parameter containing the Temporal Cloud UI address.</param>
+    /// <returns>A builder for the Temporal Cloud resource.</returns>
+    public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
+        this IDistributedApplicationBuilder builder,
+        string name,
+        IResourceBuilder<ParameterResource> address,
+        IResourceBuilder<ParameterResource> @namespace,
+        IResourceBuilder<ParameterResource>? apiKey = null,
+        IResourceBuilder<ParameterResource>? uiAddress = null)
+    {
+        return builder.AddTemporalCloud(
+            name,
+            ReferenceExpression.Create($"{address.Resource}"),
+            options =>
+            {
+                options.Namespace = @namespace.Resource;
+                options.ApiKey = apiKey?.Resource;
+                options.UIAddress = uiAddress?.Resource;
+            });
+    }
+
+    /// <summary>
     /// Adds an externally managed Temporal Cloud namespace to the distributed application.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
