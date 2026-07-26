@@ -53,6 +53,26 @@ var temporal = builder.AddTemporalCliServer();
 
 `AddTemporalDevContainer` requires Docker. `AddTemporalCliServer` requires the Temporal CLI on `PATH`.
 
+## Temporal Cloud
+
+Use `AddTemporalCloud` for an externally managed Temporal Cloud namespace. The resource injects connection settings into referenced projects without adding Aspire service discovery for the external endpoint.
+
+```csharp
+var temporalAddress = builder.AddParameter("temporal-address");
+var temporalApiKey = builder.AddParameter("temporal-api-key", secret: true);
+
+var temporal = builder.AddTemporalCloud(
+    "temporal",
+    temporalAddress,
+    "my-namespace.my-account",
+    apiKey: temporalApiKey);
+
+builder.AddProject<Projects.Worker>("worker")
+    .WithReference(temporal);
+```
+
+`WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, and `TEMPORAL_API_KEY` when an API key is configured. Consumers should load those values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
+
 ## Persist local development state
 
 The local development server uses an in-memory database by default. To persist state between runs, set Temporal's dev-server database filename:

@@ -8,6 +8,8 @@ This folder contains samples for the projects in this repository.
 
 The local dev server configures Temporal's `DevServerOptions.DatabaseFilename` to use `samples/.temporal/temporal.db` for persisted state.
 
+The worker and client both load connection settings with `ClientEnvConfig.LoadClientConnectOptions()`, so the same consumer pattern works with `AddTemporalCloud` and `TEMPORAL_API_KEY`.
+
 ```bash
 aspire start --project samples/TemporalCommunity.Aspire.Hosting.SampleAppHost/TemporalCommunity.Aspire.Hosting.SampleAppHost.csproj
 ```

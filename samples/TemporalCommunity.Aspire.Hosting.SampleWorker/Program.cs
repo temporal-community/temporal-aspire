@@ -8,9 +8,8 @@ var builder = Host.CreateApplicationBuilder(args);
 var connectOptions = ClientEnvConfig.LoadClientConnectOptions();
 
 builder.Services.AddHostedTemporalWorker(
-    clientTargetHost: connectOptions.TargetHost ?? "localhost:7233",
-    clientNamespace: connectOptions.Namespace,
     taskQueue: "sample-task-queue")
+    .ConfigureOptions(options => options.ClientOptions = connectOptions)
     .AddWorkflow<SimpleWorkflow>()
     .AddStaticActivities<SimpleActivities>();
 

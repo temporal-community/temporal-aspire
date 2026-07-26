@@ -128,4 +128,53 @@ public class TemporalEnvironmentHelperTests
         Assert.False(environmentVariables.ContainsKey("TEMPORAL_CODEC_AUTH"));
         Assert.False(environmentVariables.ContainsKey("TEMPORAL_CODEC_ENDPOINT"));
     }
+
+    [Fact]
+    public void AddEnvironmentVariables_ForCloud_InjectsApiKey_WhenSet()
+    {
+        var environmentVariables = new Dictionary<string, object>();
+        var context = new EnvironmentCallbackContext(
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            environmentVariables,
+            CancellationToken.None);
+
+        var options = new TemporalCloudOptions
+        {
+            Namespace = "orders.prod",
+            ApiKey = "secret-api-key",
+            UIAddress = "https://cloud.temporal.io/namespaces/orders.prod",
+        };
+
+        TemporalEnvironmentHelper.AddEnvironmentVariables(
+            context,
+            options,
+            "orders.prod.tmprl.cloud:7233");
+
+        Assert.Equal("orders.prod.tmprl.cloud:7233", environmentVariables["TEMPORAL_ADDRESS"]);
+        Assert.Equal("orders.prod", environmentVariables["TEMPORAL_NAMESPACE"]);
+        Assert.Equal("secret-api-key", environmentVariables["TEMPORAL_API_KEY"]);
+        Assert.Equal("https://cloud.temporal.io/namespaces/orders.prod", environmentVariables["TEMPORAL_UI_ADDRESS"]);
+    }
+
+    [Fact]
+    public void AddEnvironmentVariables_ForCloud_OmitsApiKeyAndUiAddress_WhenNotSet()
+    {
+        var environmentVariables = new Dictionary<string, object>();
+        var context = new EnvironmentCallbackContext(
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            environmentVariables,
+            CancellationToken.None);
+
+        var options = new TemporalCloudOptions { Namespace = "orders.prod" };
+
+        TemporalEnvironmentHelper.AddEnvironmentVariables(
+            context,
+            options,
+            "orders.prod.tmprl.cloud:7233");
+
+        Assert.Equal("orders.prod.tmprl.cloud:7233", environmentVariables["TEMPORAL_ADDRESS"]);
+        Assert.Equal("orders.prod", environmentVariables["TEMPORAL_NAMESPACE"]);
+        Assert.False(environmentVariables.ContainsKey("TEMPORAL_API_KEY"));
+        Assert.False(environmentVariables.ContainsKey("TEMPORAL_UI_ADDRESS"));
+    }
 }

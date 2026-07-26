@@ -30,4 +30,31 @@ internal static class TemporalEnvironmentHelper
         if (!string.IsNullOrEmpty(options.CodecEndpoint))
             ctx.EnvironmentVariables["TEMPORAL_CODEC_ENDPOINT"] = options.CodecEndpoint;
     }
+
+    /// <summary>
+    /// Adds Temporal Cloud connection and configuration environment variables to a dependent service.
+    /// </summary>
+    /// <param name="ctx">The environment callback context for the dependent service.</param>
+    /// <param name="options">The Temporal Cloud options containing namespace, credentials, and codec configuration.</param>
+    /// <param name="temporalAddress">The gRPC server address expression.</param>
+    internal static void AddEnvironmentVariables(
+        EnvironmentCallbackContext ctx,
+        TemporalCloudOptions options,
+        object temporalAddress)
+    {
+        ctx.EnvironmentVariables["TEMPORAL_ADDRESS"] = temporalAddress;
+        ctx.EnvironmentVariables["TEMPORAL_NAMESPACE"] = options.Namespace;
+
+        if (options.UIAddress is not null)
+            ctx.EnvironmentVariables["TEMPORAL_UI_ADDRESS"] = options.UIAddress;
+
+        if (options.ApiKey is not null)
+            ctx.EnvironmentVariables["TEMPORAL_API_KEY"] = options.ApiKey;
+
+        if (!string.IsNullOrEmpty(options.CodecAuth))
+            ctx.EnvironmentVariables["TEMPORAL_CODEC_AUTH"] = options.CodecAuth;
+
+        if (!string.IsNullOrEmpty(options.CodecEndpoint))
+            ctx.EnvironmentVariables["TEMPORAL_CODEC_ENDPOINT"] = options.CodecEndpoint;
+    }
 }

@@ -27,6 +27,26 @@ builder.Build().Run();
 
 The package also includes `AddTemporalDevContainer` for Docker-based local development and `AddTemporalCliServer` for running the Temporal CLI dev server directly.
 
+## Temporal Cloud
+
+Use `AddTemporalCloud` for an externally managed Temporal Cloud namespace:
+
+```csharp
+var temporalAddress = builder.AddParameter("temporal-address");
+var temporalApiKey = builder.AddParameter("temporal-api-key", secret: true);
+
+var temporal = builder.AddTemporalCloud(
+    "temporal",
+    temporalAddress,
+    "my-namespace.my-account",
+    apiKey: temporalApiKey);
+
+builder.AddProject<Projects.Worker>("worker")
+    .WithReference(temporal);
+```
+
+`WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, and `TEMPORAL_API_KEY` when an API key is configured. Consumers should load those values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
+
 ## Persist development state
 
 Set Temporal's dev-server database filename to persist local development state:
