@@ -31,6 +31,48 @@ public class TemporalCloudResourceTests
     }
 
     [Fact]
+    public void AddTemporalCloud_CanonicalParameterOverload_WiresAllParameters()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var address = appBuilder.AddParameter("temporal-address");
+        var @namespace = appBuilder.AddParameter("temporal-namespace");
+        var apiKey = appBuilder.AddParameter("temporal-api-key", secret: true);
+        var uiAddress = appBuilder.AddParameter("temporal-ui-address");
+
+        var temporal = appBuilder.AddTemporalCloud("temporal", address, @namespace, apiKey, uiAddress);
+
+        Assert.Same(@namespace.Resource, temporal.Resource.Options.Namespace);
+        Assert.Same(apiKey.Resource, temporal.Resource.Options.ApiKey);
+        Assert.Same(uiAddress.Resource, temporal.Resource.Options.UIAddress);
+        Assert.Contains(address.Resource, temporal.Resource.ConnectionStringExpression.ValueProviders);
+    }
+
+    [Fact]
+    public async Task WithReference_ForCloud_WiresTemporalEnvironmentVariables()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var address = appBuilder.AddParameter("temporal-address");
+        var @namespace = appBuilder.AddParameter("temporal-namespace");
+        var apiKey = appBuilder.AddParameter("temporal-api-key", secret: true);
+        var uiAddress = appBuilder.AddParameter("temporal-ui-address");
+        var temporal = appBuilder.AddTemporalCloud("temporal", address, @namespace, apiKey, uiAddress);
+        var worker = appBuilder.AddContainer("worker", "busybox").WithReference(temporal);
+        var environmentVariables = new Dictionary<string, object>();
+        var context = new EnvironmentCallbackContext(
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            environmentVariables,
+            CancellationToken.None);
+
+        var annotation = Assert.Single(worker.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>());
+        await annotation.Callback(context);
+
+        Assert.IsType<ReferenceExpression>(environmentVariables["TEMPORAL_ADDRESS"]);
+        Assert.Same(@namespace.Resource, environmentVariables["TEMPORAL_NAMESPACE"]);
+        Assert.Same(apiKey.Resource, environmentVariables["TEMPORAL_API_KEY"]);
+        Assert.Same(uiAddress.Resource, environmentVariables["TEMPORAL_UI_ADDRESS"]);
+    }
+
+    [Fact]
     public void AddTemporalCloud_AddsUrlAnnotation_ForStringUiAddress()
     {
         var appBuilder = DistributedApplication.CreateBuilder([]);
