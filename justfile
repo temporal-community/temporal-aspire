@@ -43,7 +43,7 @@ pack-verify: pack
     pkg=$(ls "{{artifacts_dir}}"/{{package_id}}.{{version}}.nupkg 2>/dev/null | head -1)
     [ -n "$pkg" ] || { echo "ERROR: no .nupkg found in {{artifacts_dir}}"; exit 1; }
     echo "==> Checking lib/ folders in $(basename "$pkg")"
-    for tfm in net10.0 net8.0; do
+    for tfm in net10.0 net9.0 net8.0; do
         if unzip -Z1 "$pkg" | grep -Fx "lib/$tfm/{{package_id}}.dll" >/dev/null; then
             echo "  ✓ lib/$tfm/ present"
         else
@@ -51,6 +51,12 @@ pack-verify: pack
             exit 1
         fi
     done
+    if unzip -Z1 "$pkg" | grep -Fx "icon.png" >/dev/null; then
+        echo "  ✓ icon.png present"
+    else
+        echo "  ✗ ERROR: icon.png missing from nupkg" >&2
+        exit 1
+    fi
 
 [windows]
 pack-verify: pack
@@ -59,11 +65,13 @@ pack-verify: pack
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = [System.IO.Compression.ZipFile]::OpenRead($pkg.FullName)
     try {
-      foreach ($tfm in @("net10.0", "net8.0")) {
+      foreach ($tfm in @("net10.0", "net9.0", "net8.0")) {
         $entry = "lib/$tfm/{{package_id}}.dll"
         if (-not ($zip.Entries | Where-Object FullName -eq $entry)) { throw "ERROR: $entry missing from nupkg" }
         Write-Host "  ✓ lib/$tfm/ present"
       }
+      if (-not ($zip.Entries | Where-Object FullName -eq "icon.png")) { throw "ERROR: icon.png missing from nupkg" }
+      Write-Host "  ✓ icon.png present"
     } finally {
       $zip.Dispose()
     }

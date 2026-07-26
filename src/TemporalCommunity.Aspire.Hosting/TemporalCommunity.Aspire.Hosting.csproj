@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework />
-    <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageId>TemporalCommunity.Aspire.Hosting</PackageId>
     <Title>Temporal Community Aspire Hosting</Title>
