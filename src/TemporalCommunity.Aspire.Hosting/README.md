@@ -47,6 +47,12 @@ builder.AddProject<Projects.Worker>("worker")
 
 `WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, and `TEMPORAL_API_KEY` when an API key is configured. Consumers should load those values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
 
+## Production guidance
+
+Use `AddTemporalCloud` or another externally managed Temporal endpoint for production deployments. The local, CLI, and container resources are intended for development and are excluded from generated Aspire deployment manifests.
+
+Temporal workers poll task queues from outside Temporal. Queued work remains durable if no workers are running, but latency depends on how quickly workers are available. Keep workers always-on for latency-sensitive task queues; use KEDA or Temporal Worker Controller scale-to-zero patterns for long-idle workloads when cold-start latency is acceptable.
+
 ## Persist development state
 
 Set Temporal's dev-server database filename to persist local development state:
