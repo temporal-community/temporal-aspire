@@ -103,8 +103,19 @@ public static class TemporalCloudResourceExtensions
         var resource = new TemporalCloudResource(name, address);
         configure?.Invoke(resource.Options);
 
-        return builder.AddResource(resource)
+        var resourceBuilder = builder.AddResource(resource)
             .ExcludeFromManifest();
+
+        return resource.Options.UIAddress switch
+        {
+            string uiAddress when !string.IsNullOrEmpty(uiAddress) =>
+                resourceBuilder.WithUrl(uiAddress, "Temporal Cloud"),
+            ParameterResource uiAddress =>
+                resourceBuilder.WithUrl(ReferenceExpression.Create($"{uiAddress}"), "Temporal Cloud"),
+            ReferenceExpression uiAddress =>
+                resourceBuilder.WithUrl(uiAddress, "Temporal Cloud"),
+            _ => resourceBuilder
+        };
     }
 
     /// <summary>
