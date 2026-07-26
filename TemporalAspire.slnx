@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="src/TemporalCommunity.Aspire.Hosting/TemporalCommunity.Aspire.Hosting.csproj" />
+  <Project Path="tests/TemporalCommunity.Aspire.Hosting.Tests/TemporalCommunity.Aspire.Hosting.Tests.csproj" />
+  <Project Path="samples/TemporalCommunity.Aspire.Hosting.SampleAppHost/TemporalCommunity.Aspire.Hosting.SampleAppHost.csproj" />
+  <Project Path="samples/TemporalCommunity.Aspire.Hosting.SampleClient/TemporalCommunity.Aspire.Hosting.SampleClient.csproj" />
+  <Project Path="samples/TemporalCommunity.Aspire.Hosting.SampleWorker/TemporalCommunity.Aspire.Hosting.SampleWorker.csproj" />
+  <Project Path="samples/TemporalCommunity.Aspire.Hosting.SampleWorkflow/TemporalCommunity.Aspire.Hosting.SampleWorkflow.csproj" />
+</Solution>

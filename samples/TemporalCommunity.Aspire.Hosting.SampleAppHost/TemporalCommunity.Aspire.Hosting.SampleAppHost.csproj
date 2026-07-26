@@ -1,0 +1,13 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>61aaecbc-0c29-4ef4-bf9b-c7a16d52edaa</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TemporalCommunity.Aspire.Hosting\TemporalCommunity.Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\TemporalCommunity.Aspire.Hosting.SampleClient\TemporalCommunity.Aspire.Hosting.SampleClient.csproj" />
+    <ProjectReference Include="..\TemporalCommunity.Aspire.Hosting.SampleWorker\TemporalCommunity.Aspire.Hosting.SampleWorker.csproj" />
+  </ItemGroup>
+</Project>

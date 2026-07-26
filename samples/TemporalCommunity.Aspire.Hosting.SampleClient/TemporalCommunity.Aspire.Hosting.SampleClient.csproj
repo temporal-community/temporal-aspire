@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Temporalio" Version="1.17.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TemporalCommunity.Aspire.Hosting.SampleWorkflow\TemporalCommunity.Aspire.Hosting.SampleWorkflow.csproj" />
+  </ItemGroup>
+</Project>

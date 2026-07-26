@@ -1,0 +1,97 @@
+name: Publish to NuGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release type for the selected ref
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - official
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Pack and publish ${{ inputs.release_type }} package to NuGet.org
+    runs-on: ubuntu-latest
+    environment: nuget-publish
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Verify release tag and type
+        run: |
+          release_type="${{ inputs.release_type }}"
+          version=$(dotnet tool run minver --tag-prefix "" --default-pre-release-identifiers preview)
+          if [[ "$release_type" == "preview" ]]; then
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*$ ]]; then
+              echo "::error::Preview publishing requires MinVer to calculate a SemVer prerelease version."
+              echo "::error::Select an untagged commit after a release tag, or a commit tagged with a prerelease version."
+              exit 1
+            fi
+            echo "Preview version: $version"
+          elif [[ "$release_type" == "official" ]]; then
+            tag=$(git describe --tags --exact-match HEAD 2>/dev/null || true)
+            if [[ -z "$tag" ]]; then
+              echo "::error::Official publishing requires an exact release tag."
+              echo "::error::Tag the release commit and dispatch this workflow from that tag."
+              exit 1
+            fi
+            echo "Release tag: $tag; MinVer version: $version"
+            if [[ "$version" != "$tag" ]]; then
+              echo "::error::Release tag '$tag' and MinVer version '$version' do not match."
+              exit 1
+            fi
+            if [[ ! "$tag" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Official releases require a stable SemVer tag such as 0.3.5."
+              exit 1
+            fi
+          else
+            echo "::error::Unsupported release type '$release_type'."
+            exit 1
+          fi
+
+          echo "Release type: $release_type; MinVer version: $version"
+
+      - name: Test
+        run: just test
+
+      - name: Pack and verify package
+        run: just pack-verify
+
+      - name: NuGet login (Trusted Publishing)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: cecilphillip
+          token-service-url: https://www.nuget.org/api/v2/token
+
+      - name: Publish to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "artifacts/packages/*.nupkg" \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "$NUGET_API_KEY" \
+            --skip-duplicate

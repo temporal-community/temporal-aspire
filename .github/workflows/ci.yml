@@ -1,0 +1,52 @@
+name: Build & Unit Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore packages
+        run: dotnet restore TemporalAspire.slnx
+
+      - name: Build
+        run: dotnet build TemporalAspire.slnx --configuration Release --no-restore --nologo
+
+      - name: Unit tests
+        run: dotnet test tests/TemporalCommunity.Aspire.Hosting.Tests --configuration Release --no-build --nologo --logger "trx;LogFileName=unit.trx"
+
+      - name: Install just
+        if: matrix.os == 'ubuntu-latest'
+        uses: taiki-e/install-action@just
+
+      - name: Verify package assets
+        if: matrix.os == 'ubuntu-latest'
+        run: just pack-verify
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: unit-test-results-${{ matrix.os }}
+          path: tests/**/*.trx
