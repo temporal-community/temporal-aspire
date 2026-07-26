@@ -12,16 +12,12 @@ public static class TemporalCloudResourceExtensions
     /// <param name="name">The resource name.</param>
     /// <param name="address">The Temporal Cloud host:port address.</param>
     /// <param name="namespace">The Temporal Cloud namespace.</param>
-    /// <param name="apiKey">Optional API key value to inject into dependent resources.</param>
-    /// <param name="uiAddress">Optional Temporal Cloud UI address.</param>
     /// <returns>A builder for the Temporal Cloud resource.</returns>
     public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
         this IDistributedApplicationBuilder builder,
         string name,
         string address,
-        string @namespace,
-        string? apiKey = null,
-        string? uiAddress = null)
+        string @namespace)
     {
         return builder.AddTemporalCloud(
             name,
@@ -29,8 +25,6 @@ public static class TemporalCloudResourceExtensions
             options =>
             {
                 options.Namespace = @namespace;
-                options.ApiKey = apiKey;
-                options.UIAddress = uiAddress;
             });
     }
 
@@ -41,7 +35,7 @@ public static class TemporalCloudResourceExtensions
     /// <param name="name">The resource name.</param>
     /// <param name="address">A parameter containing the Temporal Cloud host:port address.</param>
     /// <param name="namespace">The Temporal Cloud namespace.</param>
-    /// <param name="apiKey">Optional parameter containing the API key to inject into dependent resources.</param>
+    /// <param name="apiKey">Optional secret parameter containing the API key to inject into dependent resources.</param>
     /// <param name="uiAddress">Optional parameter containing the Temporal Cloud UI address.</param>
     /// <returns>A builder for the Temporal Cloud resource.</returns>
     public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
@@ -70,7 +64,7 @@ public static class TemporalCloudResourceExtensions
     /// <param name="name">The resource name.</param>
     /// <param name="address">A parameter containing the Temporal Cloud host:port address.</param>
     /// <param name="namespace">A parameter containing the Temporal Cloud namespace.</param>
-    /// <param name="apiKey">Optional parameter containing the API key to inject into dependent resources.</param>
+    /// <param name="apiKey">Optional secret parameter containing the API key to inject into dependent resources.</param>
     /// <param name="uiAddress">Optional parameter containing the Temporal Cloud UI address.</param>
     /// <returns>A builder for the Temporal Cloud resource.</returns>
     public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
