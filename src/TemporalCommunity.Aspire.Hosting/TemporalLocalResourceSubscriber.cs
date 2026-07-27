@@ -79,7 +79,7 @@ public class TemporalLocalResourceSubscriber : IDistributedApplicationEventingSu
             resourceLogger.LogInformation("Starting Temporal test server for resource '{ResourceName}'...",
                 resource.Name);
 
-            var env = await WorkflowEnvironment.StartLocalAsync(resource.Options);
+            var env = await WorkflowEnvironment.StartLocalAsync(TemporalArgsBuilder.BuildLocalOptions(resource.Options));
 
             // Store the environment for later shutdown (before publishing events)
             environments[resource.Name] = env;

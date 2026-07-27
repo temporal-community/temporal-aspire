@@ -101,16 +101,14 @@ public class TemporalCliServerResourceExtensionsTests
     }
 
     [Fact]
-    public void TemporalCliServerResource_CustomOptions_ReflectedInArgs()
+    public void TemporalCliServerResource_NamespaceOption_IsReflectedInArgs()
     {
         var resource = new TemporalCliServerResource("temporal-cli-server");
         resource.Options.Namespace = "orders";
-        resource.Options.CodecEndpoint = "http://localhost:8088";
 
         var args = TemporalArgsBuilder.BuildArgs(resource.Options);
 
         Assert.Contains("orders", args);
-        Assert.Contains("http://localhost:8088", args);
     }
 
     [Fact]
@@ -137,6 +135,60 @@ public class TemporalCliServerResourceExtensionsTests
         var databaseFilenameIndex = Array.IndexOf(args, "--db-filename");
         Assert.True(databaseFilenameIndex >= 0, "Expected --db-filename flag in args");
         Assert.Equal("/home/temporal/temporal.db", args[databaseFilenameIndex + 1]);
+    }
+
+    [Fact]
+    public void BuildArgs_UsesConfiguredMetricsPort()
+    {
+        var options = new TemporalResourceOptions { TargetHost = "127.0.0.1:17233", MetricsPort = 19233 };
+
+        var args = TemporalArgsBuilder.BuildArgs(options);
+
+        var metricsPortIndex = Array.IndexOf(args, "--metrics-port");
+        Assert.True(metricsPortIndex >= 0, "Expected --metrics-port flag in args");
+        Assert.Equal("19233", args[metricsPortIndex + 1]);
+    }
+
+    [Fact]
+    public void BuildArgs_UsesFixedContainerMetricsPort()
+    {
+        var options = new TemporalResourceOptions { MetricsPort = 19233 };
+
+        var args = TemporalArgsBuilder.BuildArgs(options, fixedIpAndPort: true);
+
+        var metricsPortIndex = Array.IndexOf(args, "--metrics-port");
+        Assert.True(metricsPortIndex >= 0, "Expected --metrics-port flag in args");
+        Assert.Equal(
+            TemporalResourceConstants.DefaultMetricsEndpointPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            args[metricsPortIndex + 1]);
+    }
+
+    [Fact]
+    public void BuildArgs_HeadlessModeOmitsUiPort()
+    {
+        var options = new TemporalResourceOptions { UI = false };
+
+        var args = TemporalArgsBuilder.BuildArgs(options);
+
+        Assert.Contains("--headless", args);
+        Assert.DoesNotContain("--ui-port", args);
+    }
+
+    [Fact]
+    public void BuildArgs_DoesNotPassClientCredentialFlagsToDevServer()
+    {
+        var options = new TemporalResourceOptions
+        {
+            ApiKey = "api-key",
+            CodecAuth = "codec-auth",
+            CodecEndpoint = "http://localhost:8088"
+        };
+
+        var args = TemporalArgsBuilder.BuildArgs(options);
+
+        Assert.DoesNotContain("--api-key", args);
+        Assert.DoesNotContain("--codec-auth", args);
+        Assert.DoesNotContain("--codec-endpoint", args);
     }
 
     [Fact]
@@ -197,5 +249,26 @@ public class TemporalCliServerResourceExtensionsTests
         Assert.Equal(17233, service.Port);
         Assert.Equal(18233, ui.Port);
         Assert.Equal(19233, metrics.Port);
+    }
+
+    [Fact]
+    public void AddTemporalCliServer_HeadlessModeDoesNotPublishUiEndpoint()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+
+        var resourceBuilder = appBuilder.AddTemporalCliServer(
+            "temporal",
+            configure: options => options.UI = false,
+            isTemporalCliAvailable: () => true);
+
+        var endpointNames = resourceBuilder.Resource.Annotations
+            .OfType<EndpointAnnotation>()
+            .Select(endpoint => endpoint.Name)
+            .ToList();
+
+        Assert.DoesNotContain(TemporalResourceConstants.UIEndpointName, endpointNames);
+        Assert.DoesNotContain(
+            resourceBuilder.Resource.Annotations,
+            annotation => annotation is ResourceUrlAnnotation or ResourceUrlsCallbackAnnotation);
     }
 }

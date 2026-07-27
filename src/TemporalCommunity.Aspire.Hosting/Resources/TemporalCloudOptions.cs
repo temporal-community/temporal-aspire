@@ -22,8 +22,11 @@ public class TemporalCloudOptions
     /// </summary>
     public object? UIAddress { get; set; }
 
-    /// <summary>Gets or sets the codec authentication token for encrypted payloads.</summary>
-    public string? CodecAuth { get; set; }
+    /// <summary>
+    /// Gets or sets the codec authentication token or value provider for encrypted payloads.
+    /// Prefer a secret <see cref="ParameterResource"/> for production credentials.
+    /// </summary>
+    public object? CodecAuth { get; set; }
 
     /// <summary>Gets or sets the codec server endpoint for encrypted payloads.</summary>
     public string? CodecEndpoint { get; set; }

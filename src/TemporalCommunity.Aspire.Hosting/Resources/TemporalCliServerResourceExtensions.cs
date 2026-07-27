@@ -65,7 +65,7 @@ public static class TemporalCliServerResourceExtensions
         builder.Services.AddHealthChecks()
             .AddTemporalHealthCheck(clientAccessor, healthCheckKey);
 
-        return builder.AddResource(resource)
+        var resourceBuilder = builder.AddResource(resource)
             .WithArgs(TemporalArgsBuilder.BuildArgs(resource.Options))
             .ExcludeFromManifest()
             .WithEndpoint(
@@ -74,19 +74,26 @@ public static class TemporalCliServerResourceExtensions
                 isProxied: false,
                 name: TemporalResourceConstants.ServiceEndpointName)
             .WithHttpEndpoint(
-                targetPort: resource.Options.UIPort,
-                port: resource.Options.UIPort,
-                isProxied: false,
-                name: TemporalResourceConstants.UIEndpointName)
-            .WithHttpEndpoint(
                 targetPort: resource.Options.MetricsPort,
                 port: resource.Options.MetricsPort,
                 isProxied: false,
                 name: TemporalResourceConstants.MetricsEndpointName)
-            .WithHealthCheck(healthCheckKey)
-            .WithUrlForEndpoint(TemporalResourceConstants.UIEndpointName, url =>
-            {
-                url.DisplayText = "Dashboard";
-            });
+            .WithHealthCheck(healthCheckKey);
+
+        if (resource.Options.UI)
+        {
+            resourceBuilder = resourceBuilder
+                .WithHttpEndpoint(
+                    targetPort: resource.Options.UIPort,
+                    port: resource.Options.UIPort,
+                    isProxied: false,
+                    name: TemporalResourceConstants.UIEndpointName)
+                .WithUrlForEndpoint(TemporalResourceConstants.UIEndpointName, url =>
+                {
+                    url.DisplayText = "Dashboard";
+                });
+        }
+
+        return resourceBuilder;
     }
 }

@@ -11,6 +11,6 @@ var workflowId = $"sample-workflow-{Guid.NewGuid():N}";
 
 var result = await client.ExecuteWorkflowAsync(
     (SimpleWorkflow workflow) => workflow.RunAsync("Aspire"),
-    new(id: workflowId, taskQueue: "sample-task-queue"));
+    new(id: workflowId, taskQueue: SampleWorkflowConstants.TaskQueue));
 
 Console.WriteLine(result);

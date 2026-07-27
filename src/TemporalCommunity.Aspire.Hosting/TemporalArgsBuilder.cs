@@ -1,3 +1,5 @@
+using Temporalio.Testing;
+
 namespace TemporalCommunity.Aspire.Hosting;
 
 /// <summary>
@@ -22,12 +24,16 @@ internal static class TemporalArgsBuilder
         {
             args.AddRange(["--ip", "0.0.0.0"]);
             args.AddRange(["--port", $"{TemporalResourceConstants.DefaultServiceEndpointPort}"]);
+            args.AddRange(["--metrics-port", $"{TemporalResourceConstants.DefaultMetricsEndpointPort}"]);
         }
         else
         {
             args.AddRange(["--ip", options.Ip]);
             args.AddRange(["--port", options.Port.ToString()]);
-            args.AddRange(["--ui-port", options.UIPort.ToString()]);
+            args.AddRange(["--metrics-port", options.MetricsPort.ToString()]);
+
+            if (!options.IsHeadless)
+                args.AddRange(["--ui-port", options.UIPort.ToString()]);
         }
 
         if (options.IsHeadless)
@@ -48,18 +54,41 @@ internal static class TemporalArgsBuilder
         foreach (var dv in options.DynamicConfigValues)
             args.AddRange(["--dynamic-config-value", dv]);
 
-        if (!string.IsNullOrEmpty(options.CodecAuth))
-            args.AddRange(["--codec-auth", options.CodecAuth]);
-
-        if (!string.IsNullOrEmpty(options.CodecEndpoint))
-            args.AddRange(["--codec-endpoint", options.CodecEndpoint]);
-
-        if (!string.IsNullOrEmpty(options.ApiKey))
-            args.AddRange(["--api-key", options.ApiKey]);
-
         if (!string.IsNullOrEmpty(options.DevServerOptions.DatabaseFilename))
             args.AddRange(["--db-filename", options.DevServerOptions.DatabaseFilename]);
 
         return args.ToArray();
+    }
+
+    /// <summary>
+    /// Creates SDK local-server options with the configured metrics endpoint.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="WorkflowEnvironmentStartLocalOptions"/> has no first-class metrics-port setting;
+    /// the Temporal SDK exposes it through <see cref="DevServerOptions.ExtraArgs"/>.
+    /// </remarks>
+    internal static WorkflowEnvironmentStartLocalOptions BuildLocalOptions(TemporalResourceOptions options)
+    {
+        var localOptions = (WorkflowEnvironmentStartLocalOptions)options.Clone();
+        var extraArgs = localOptions.DevServerOptions.ExtraArgs ?? [];
+
+        if (extraArgs.Any(IsMetricsPortArgument))
+        {
+            throw new InvalidOperationException(
+                "Configure TemporalResourceOptions.MetricsPort instead of passing --metrics-port in DevServerOptions.ExtraArgs.");
+        }
+
+        localOptions.DevServerOptions.ExtraArgs =
+        [
+            .. extraArgs,
+            "--metrics-port",
+            options.MetricsPort.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        ];
+
+        return localOptions;
+
+        static bool IsMetricsPortArgument(string argument) =>
+            argument.Equals("--metrics-port", StringComparison.Ordinal) ||
+            argument.StartsWith("--metrics-port=", StringComparison.Ordinal);
     }
 }

@@ -8,7 +8,7 @@ var builder = Host.CreateApplicationBuilder(args);
 var connectOptions = ClientEnvConfig.LoadClientConnectOptions();
 
 builder.Services.AddHostedTemporalWorker(
-    taskQueue: "sample-task-queue")
+    taskQueue: SampleWorkflowConstants.TaskQueue)
     .ConfigureOptions(options => options.ClientOptions = connectOptions)
     .AddWorkflow<SimpleWorkflow>()
     .AddStaticActivities<SimpleActivities>();

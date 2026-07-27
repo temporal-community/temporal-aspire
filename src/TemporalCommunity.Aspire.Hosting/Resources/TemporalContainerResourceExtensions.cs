@@ -29,7 +29,7 @@ public static class TemporalContainerResourceExtensions
         builder.Services.AddHealthChecks()
             .AddTemporalHealthCheck(clientAccessor, healthCheckKey);
 
-        return builder.AddResource(resource)
+        var resourceBuilder = builder.AddResource(resource)
             .WithImage(TemporalResourceConstants.TemporalImage,
                 resource.Options.ImageTag ?? TemporalResourceConstants.DefaultTag)
             .WithImageRegistry("docker.io")
@@ -41,20 +41,27 @@ public static class TemporalContainerResourceExtensions
                 isProxied: false,
                 name: TemporalResourceConstants.ServiceEndpointName)
             .WithHttpEndpoint(
-                targetPort: TemporalResourceConstants.DefaultUIEndpointPort,
-                port: resource.Options.UIPort,
-                isProxied: false,
-                name: TemporalResourceConstants.UIEndpointName)
-            .WithHttpEndpoint(
                 targetPort: TemporalResourceConstants.DefaultMetricsEndpointPort,
                 port: resource.Options.MetricsPort,
                 isProxied: false,
                 name: TemporalResourceConstants.MetricsEndpointName)
-            .WithHealthCheck(healthCheckKey)
-            .WithUrlForEndpoint(TemporalResourceConstants.UIEndpointName, url =>
-            {
-                url.DisplayText = "Dashboard";
-            });
+            .WithHealthCheck(healthCheckKey);
+
+        if (resource.Options.UI)
+        {
+            resourceBuilder = resourceBuilder
+                .WithHttpEndpoint(
+                    targetPort: TemporalResourceConstants.DefaultUIEndpointPort,
+                    port: resource.Options.UIPort,
+                    isProxied: false,
+                    name: TemporalResourceConstants.UIEndpointName)
+                .WithUrlForEndpoint(TemporalResourceConstants.UIEndpointName, url =>
+                {
+                    url.DisplayText = "Dashboard";
+                });
+        }
+
+        return resourceBuilder;
     }
 
     /// <summary>
@@ -77,7 +84,9 @@ public static class TemporalContainerResourceExtensions
                     ctx,
                     source.Resource.Options,
                     source.Resource.ConnectionStringExpression,
-                    source.GetEndpoint(TemporalResourceConstants.UIEndpointName));
+                    source.Resource.Options.UI
+                        ? source.GetEndpoint(TemporalResourceConstants.UIEndpointName)
+                        : null);
             });
     }
 }

@@ -37,6 +37,7 @@ public static class TemporalCloudResourceExtensions
     /// <param name="namespace">The Temporal Cloud namespace.</param>
     /// <param name="apiKey">Optional secret parameter containing the API key to inject into dependent resources.</param>
     /// <param name="uiAddress">Optional parameter containing the Temporal Cloud UI address.</param>
+    /// <param name="codecAuth">Optional secret parameter containing the codec authentication token.</param>
     /// <returns>A builder for the Temporal Cloud resource.</returns>
     public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
         this IDistributedApplicationBuilder builder,
@@ -44,7 +45,8 @@ public static class TemporalCloudResourceExtensions
         IResourceBuilder<ParameterResource> address,
         string @namespace,
         IResourceBuilder<ParameterResource>? apiKey = null,
-        IResourceBuilder<ParameterResource>? uiAddress = null)
+        IResourceBuilder<ParameterResource>? uiAddress = null,
+        IResourceBuilder<ParameterResource>? codecAuth = null)
     {
         return builder.AddTemporalCloud(
             name,
@@ -54,6 +56,7 @@ public static class TemporalCloudResourceExtensions
                 options.Namespace = @namespace;
                 options.ApiKey = apiKey?.Resource;
                 options.UIAddress = uiAddress?.Resource;
+                options.CodecAuth = codecAuth?.Resource;
             });
     }
 
@@ -66,6 +69,7 @@ public static class TemporalCloudResourceExtensions
     /// <param name="namespace">A parameter containing the Temporal Cloud namespace.</param>
     /// <param name="apiKey">Optional secret parameter containing the API key to inject into dependent resources.</param>
     /// <param name="uiAddress">Optional parameter containing the Temporal Cloud UI address.</param>
+    /// <param name="codecAuth">Optional secret parameter containing the codec authentication token.</param>
     /// <returns>A builder for the Temporal Cloud resource.</returns>
     public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
         this IDistributedApplicationBuilder builder,
@@ -73,7 +77,8 @@ public static class TemporalCloudResourceExtensions
         IResourceBuilder<ParameterResource> address,
         IResourceBuilder<ParameterResource> @namespace,
         IResourceBuilder<ParameterResource>? apiKey = null,
-        IResourceBuilder<ParameterResource>? uiAddress = null)
+        IResourceBuilder<ParameterResource>? uiAddress = null,
+        IResourceBuilder<ParameterResource>? codecAuth = null)
     {
         return builder.AddTemporalCloud(
             name,
@@ -83,6 +88,7 @@ public static class TemporalCloudResourceExtensions
                 options.Namespace = @namespace.Resource;
                 options.ApiKey = apiKey?.Resource;
                 options.UIAddress = uiAddress?.Resource;
+                options.CodecAuth = codecAuth?.Resource;
             });
     }
 

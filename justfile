@@ -32,6 +32,9 @@ build: restore
 test: build
     dotnet test "{{tests_dir}}" --configuration "{{configuration}}" --no-build --nologo --logger "trx;LogFileName=unit.trx"
 
+integration-test: build
+    RUN_TEMPORAL_INTEGRATION_TESTS=1 dotnet test "{{tests_dir}}" --configuration "{{configuration}}" --no-build --nologo --filter "FullyQualifiedName~TemporalDevServerIntegrationTests"
+
 pack: build
     mkdir -p "{{artifacts_dir}}"
     dotnet pack "{{package_dir}}" --configuration "{{configuration}}" --no-build --nologo --output "{{artifacts_dir}}"

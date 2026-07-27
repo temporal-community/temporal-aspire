@@ -85,4 +85,23 @@ public class TemporalResourceOptionsTests
 
         Assert.Single(options.AdditionalNamespaces, ns => ns == "orders");
     }
+
+    [Fact]
+    public void BuildLocalOptions_PassesMetricsPortThroughExtraArguments()
+    {
+        var options = new TemporalResourceOptions { MetricsPort = 19233 };
+
+        var localOptions = TemporalArgsBuilder.BuildLocalOptions(options);
+
+        Assert.Equal(["--metrics-port", "19233"], localOptions.DevServerOptions.ExtraArgs);
+    }
+
+    [Fact]
+    public void BuildLocalOptions_RejectsConflictingMetricsArgument()
+    {
+        var options = new TemporalResourceOptions();
+        options.DevServerOptions.ExtraArgs = ["--metrics-port", "19233"];
+
+        Assert.Throws<InvalidOperationException>(() => TemporalArgsBuilder.BuildLocalOptions(options));
+    }
 }

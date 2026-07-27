@@ -13,18 +13,20 @@ internal static class TemporalEnvironmentHelper
     /// <param name="ctx">The environment callback context for the dependent service.</param>
     /// <param name="options">The Temporal resource options containing namespace and codec configuration.</param>
     /// <param name="temporalAddress">The gRPC server address expression.</param>
-    /// <param name="temporalUiAddress">The Web UI address expression.</param>
+    /// <param name="temporalUiAddress">The optional Web UI address expression.</param>
     internal static void AddEnvironmentVariables(
         EnvironmentCallbackContext ctx,
         TemporalResourceOptions options,
         object temporalAddress,
-        object temporalUiAddress)
+        object? temporalUiAddress)
     {
         ctx.EnvironmentVariables["TEMPORAL_ADDRESS"] = temporalAddress;
-        ctx.EnvironmentVariables["TEMPORAL_UI_ADDRESS"] = temporalUiAddress;
         ctx.EnvironmentVariables["TEMPORAL_NAMESPACE"] = options.Namespace;
 
-        if (!string.IsNullOrEmpty(options.CodecAuth))
+        if (temporalUiAddress is not null)
+            ctx.EnvironmentVariables["TEMPORAL_UI_ADDRESS"] = temporalUiAddress;
+
+        if (options.CodecAuth is not null)
             ctx.EnvironmentVariables["TEMPORAL_CODEC_AUTH"] = options.CodecAuth;
 
         if (!string.IsNullOrEmpty(options.CodecEndpoint))
@@ -51,7 +53,7 @@ internal static class TemporalEnvironmentHelper
         if (options.ApiKey is not null)
             ctx.EnvironmentVariables["TEMPORAL_API_KEY"] = options.ApiKey;
 
-        if (!string.IsNullOrEmpty(options.CodecAuth))
+        if (options.CodecAuth is not null)
             ctx.EnvironmentVariables["TEMPORAL_CODEC_AUTH"] = options.CodecAuth;
 
         if (!string.IsNullOrEmpty(options.CodecEndpoint))

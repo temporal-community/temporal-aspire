@@ -41,17 +41,11 @@ public static class TemporalLocalResourceExtensions
                 isProxied: false,
                 name: TemporalResourceConstants.ServiceEndpointName)
             .WithHttpEndpoint(
-                targetPort: resource.Options.UIPort,
-                port: resource.Options.UIPort,
-                isProxied: false,
-                name: TemporalResourceConstants.UIEndpointName)
-            .WithHttpEndpoint(
                 targetPort: resource.Options.MetricsPort,
                 port: resource.Options.MetricsPort,
                 isProxied: false,
                 name: TemporalResourceConstants.MetricsEndpointName)
             .WithHealthCheck(healthCheckKey)
-            .WithUrlForEndpoint(TemporalResourceConstants.UIEndpointName, url => { url.DisplayText = "Dashboard"; })
             .WithInitialState(new CustomResourceSnapshot
             {
                 ResourceType = "temporal-local",
@@ -62,6 +56,17 @@ public static class TemporalLocalResourceExtensions
                     new(CustomResourceKnownProperties.Source, "Temporalio.Testing.WorkflowEnvironment")
                 ]
             });
+
+        if (resource.Options.UI)
+        {
+            resourceBuilder = resourceBuilder
+                .WithHttpEndpoint(
+                    targetPort: resource.Options.UIPort,
+                    port: resource.Options.UIPort,
+                    isProxied: false,
+                    name: TemporalResourceConstants.UIEndpointName)
+                .WithUrlForEndpoint(TemporalResourceConstants.UIEndpointName, url => { url.DisplayText = "Dashboard"; });
+        }
 
         resourceBuilder.WithCommand(
             name: KnownResourceCommands.StopCommand,
@@ -152,7 +157,7 @@ public static class TemporalLocalResourceExtensions
                 try
                 {
                     resourceLogger.LogInformation("Starting Temporal test server for resource '{ResourceName}'...", resource.Name);
-                    var env = await WorkflowEnvironment.StartLocalAsync(resource.Options);
+                    var env = await WorkflowEnvironment.StartLocalAsync(TemporalArgsBuilder.BuildLocalOptions(resource.Options));
                     resource.WorkflowEnvironment = env;
 
                     var targetHost = env.Client.Connection.Options.TargetHost ?? "unknown";
@@ -234,7 +239,7 @@ public static class TemporalLocalResourceExtensions
                     ctx,
                     source.Resource.Options,
                     $"localhost:{source.Resource.Options.Port}",
-                    $"http://localhost:{source.Resource.Options.UIPort}");
+                    source.Resource.Options.UI ? $"http://localhost:{source.Resource.Options.UIPort}" : null);
             });
     }
 }
