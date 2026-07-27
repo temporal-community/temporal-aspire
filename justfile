@@ -10,7 +10,7 @@ package_id    := "TemporalCommunity.Aspire.Hosting"
 # The sed/tr reads MinVerDefaultPreReleaseIdentifiers from Directory.Build.props so the pre-release
 # label has a single source of truth; minver-cli must be installed via `dotnet tool restore`.
 prerelease    := `sed -n 's/.*<MinVerDefaultPreReleaseIdentifiers>\(.*\)<\/MinVerDefaultPreReleaseIdentifiers>.*/\1/p' Directory.Build.props | tr -d ' '`
-version       := `dotnet tool run minver --tag-prefix "" --default-pre-release-identifiers $(sed -n 's/.*<MinVerDefaultPreReleaseIdentifiers>\(.*\)<\/MinVerDefaultPreReleaseIdentifiers>.*/\1/p' Directory.Build.props | tr -d ' ')`
+version       := `dotnet tool run minver --tag-prefix "" --default-pre-release-identifiers "$(just --evaluate prerelease)" --verbosity error`
 
 default:
     @just --list
