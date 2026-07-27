@@ -49,7 +49,24 @@ jobs:
 
       - name: Install Temporal CLI
         if: matrix.os == 'ubuntu-latest'
-        uses: temporalio/setup-temporal@v0
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          case "$(uname -m)" in
+            x86_64) cli_arch=amd64 ;;
+            aarch64|arm64) cli_arch=arm64 ;;
+            *)
+              echo "Unsupported architecture: $(uname -m)" >&2
+              exit 1
+              ;;
+          esac
+
+          curl -fsSL "https://temporal.download/cli/archive/latest?platform=linux&arch=${cli_arch}" -o temporal.tar.gz
+          tar -xzf temporal.tar.gz temporal
+          install -m 0755 temporal "$HOME/.local/bin/temporal"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          temporal --version
 
       - name: Run Temporal development-server integration tests
         if: matrix.os == 'ubuntu-latest'
