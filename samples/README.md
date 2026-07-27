@@ -1,4 +1,4 @@
-# TemporalCommunity.Aspire.Hosting samples
+# Hosting sample
 
 This folder contains samples for the projects in this repository.
 
