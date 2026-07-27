@@ -1,5 +1,5 @@
 {
   "appHost": {
-    "path": "TemporalCommunity.Aspire.Hosting.SampleAppHost/TemporalCommunity.Aspire.Hosting.SampleAppHost.csproj"
+    "path": "SampleAppHost/SampleAppHost.csproj"
   }
 }

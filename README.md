@@ -62,21 +62,44 @@ var temporalAddress = builder.AddParameter("temporal-address");
 var temporalNamespace = builder.AddParameter("temporal-namespace");
 var temporalApiKey = builder.AddParameter("temporal-api-key", secret: true);
 var temporalUiAddress = builder.AddParameter("temporal-ui-address");
+var temporalCodecAuth = builder.AddParameter("temporal-codec-auth", secret: true);
 
 var temporal = builder.AddTemporalCloud(
     "temporal",
     temporalAddress,
     temporalNamespace,
     temporalApiKey,
-    temporalUiAddress);
+    temporalUiAddress,
+    temporalCodecAuth);
 
 builder.AddProject<Projects.Worker>("worker")
     .WithReference(temporal);
 ```
 
-Use Aspire parameters for production configuration, especially `builder.AddParameter("temporal-api-key", secret: true)` for API keys. The string overload is intended for non-secret local or test configuration; do not put production API keys in source.
+Use Aspire parameters for production configuration, especially `builder.AddParameter("temporal-api-key", secret: true)` for API keys. The string overload only accepts address and namespace; API keys and UI addresses require Aspire parameters or the configure overload.
 
-`WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, and optional `TEMPORAL_UI_ADDRESS` when configured. Consumers should load those values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
+Set the parameter values for local development with the Aspire CLI. The key format is `Parameters:<parameter-name>`, and `--apphost` targets the AppHost project that declares the parameters:
+
+```bash
+aspire secret set Parameters:temporal-address "your-namespace.your-account.tmprl.cloud:7233" \
+  --apphost samples/SampleAppHost/SampleAppHost.csproj
+
+aspire secret set Parameters:temporal-namespace "your-namespace.your-account" \
+  --apphost samples/SampleAppHost/SampleAppHost.csproj
+
+aspire secret set Parameters:temporal-api-key "your-api-key" \
+  --apphost samples/SampleAppHost/SampleAppHost.csproj
+
+aspire secret set Parameters:temporal-ui-address "https://cloud.temporal.io/namespaces/your-namespace.your-account" \
+  --apphost samples/SampleAppHost/SampleAppHost.csproj
+
+aspire secret set Parameters:temporal-codec-auth "your-codec-auth-token" \
+  --apphost samples/SampleAppHost/SampleAppHost.csproj
+```
+
+Use `aspire secret list --apphost <path-to-apphost>` to confirm the values were saved. Keep API keys and codec credentials in user secrets or your deployment secret store; do not commit them to source control.
+
+`WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, and optional `TEMPORAL_UI_ADDRESS` and `TEMPORAL_CODEC_AUTH` when configured. Use secret Aspire parameters for API keys and codec credentials. Consumers should load connection values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
 
 ## Production deployment guidance
 
@@ -84,9 +107,11 @@ Use `AddTemporalCloud` or another externally managed Temporal endpoint for produ
 
 Temporal workers are external processes that poll task queues. Queued Workflow and Activity tasks remain in Temporal when no workers are available, but worker scaling changes user-visible latency:
 
-- Keep at least one worker replica running for latency-sensitive task queues and workflows with frequent activity.
+- Run at least two worker replicas for each production task queue so a rollout or instance failure does not stop polling; keep them always-on for latency-sensitive work.
 - Use KEDA or Temporal Worker Controller scale-to-zero patterns for long-idle workloads when cold-start latency is acceptable.
 - Size workers by task queue and workload characteristics rather than applying one replica policy globally.
+- Tune task slots, sticky-cache size, and poller counts from representative load tests; do not assume SDK defaults are production settings.
+- Use Worker Versioning for workflow-code rollouts, configure graceful shutdown so active Tasks can finish, and monitor worker CPU/memory, Schedule-to-Start latency, available task slots, and Temporal request failures/latency together.
 
 For Azure Container Apps or Kubernetes, inject Temporal Cloud address, namespace, and API key as parameters or secrets, then let worker/client code load them with `ClientEnvConfig.LoadClientConnectOptions()`.
 
@@ -95,13 +120,28 @@ For Azure Container Apps or Kubernetes, inject Temporal Cloud address, namespace
 The local development server uses an in-memory database by default. To persist state between runs, set Temporal's dev-server database filename:
 
 ```csharp
-var temporalDataDirectory = Path.Combine(AppContext.BaseDirectory, "temporal-data");
+var appHostDirectory = FindAncestor(AppContext.BaseDirectory, "MyApp.AppHost");
+var temporalDataDirectory = Path.Combine(Directory.GetParent(appHostDirectory)!.FullName, ".temporal");
 Directory.CreateDirectory(temporalDataDirectory);
 
 var temporal = builder.AddTemporalLocalDevServer("temporal", options =>
 {
     options.DevServerOptions.DatabaseFilename = Path.Combine(temporalDataDirectory, "temporal.db");
 });
+
+static string FindAncestor(string startPath, string directoryName)
+{
+    var directory = new DirectoryInfo(startPath);
+    while (directory is not null)
+    {
+        if (string.Equals(directory.Name, directoryName, StringComparison.Ordinal))
+            return directory.FullName;
+
+        directory = directory.Parent;
+    }
+
+    throw new DirectoryNotFoundException($"Could not find ancestor directory '{directoryName}'.");
+}
 ```
 
 For the container-based resource, use a container path and mount a volume:
@@ -117,12 +157,14 @@ temporal.WithVolume("temporal-data", "/home/temporal");
 
 `DevServerOptions` is marked unstable by the Temporal .NET SDK and may change in future SDK versions.
 
+When `UI = false`, the resource does not publish a dashboard URL or `TEMPORAL_UI_ADDRESS`. Development resources expose `/metrics` on the configured metrics port.
+
 ## Run the sample
 
 This repo includes a runnable Aspire sample with an AppHost, worker, client, and workflow.
 
 ```bash
-aspire start --apphost samples/TemporalCommunity.Aspire.Hosting.SampleAppHost/TemporalCommunity.Aspire.Hosting.SampleAppHost.csproj
+aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj
 ```
 
 The sample starts a local Temporal development server, runs a worker, and executes a workflow from the client.

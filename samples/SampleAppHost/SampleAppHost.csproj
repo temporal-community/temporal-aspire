@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TemporalCommunity.Aspire.Hosting\TemporalCommunity.Aspire.Hosting.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\TemporalCommunity.Aspire.Hosting.SampleClient\TemporalCommunity.Aspire.Hosting.SampleClient.csproj" />
-    <ProjectReference Include="..\TemporalCommunity.Aspire.Hosting.SampleWorker\TemporalCommunity.Aspire.Hosting.SampleWorker.csproj" />
+    <ProjectReference Include="..\SampleClient\SampleClient.csproj" />
+    <ProjectReference Include="..\SampleWorker\SampleWorker.csproj" />
   </ItemGroup>
 </Project>

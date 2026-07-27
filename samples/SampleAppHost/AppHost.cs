@@ -10,11 +10,11 @@ var temporal = builder.AddTemporalLocalDevServer("temporal", options =>
     options.DevServerOptions.DatabaseFilename = Path.Combine(temporalDataDirectory, "temporal.db");
 });
 
-builder.AddProject<Projects.TemporalCommunity_Aspire_Hosting_SampleWorker>("sample-worker")
+builder.AddProject<Projects.SampleWorker>("sample-worker")
     .WaitFor(temporal)
     .WithReference(temporal);
 
-builder.AddProject<Projects.TemporalCommunity_Aspire_Hosting_SampleClient>("sample-client")
+builder.AddProject<Projects.SampleClient>("sample-client")
     .WaitFor(temporal)
     .WithReference(temporal);
 

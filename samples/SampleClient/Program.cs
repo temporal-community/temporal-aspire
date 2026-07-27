@@ -1,6 +1,6 @@
+using TemporalCommunity.Aspire.Hosting.SampleWorkflow;
 using Temporalio.Client;
 using Temporalio.Common.EnvConfig;
-using TemporalCommunity.Aspire.Hosting.SampleWorkflow;
 
 var connectOptions = ClientEnvConfig.LoadClientConnectOptions();
 

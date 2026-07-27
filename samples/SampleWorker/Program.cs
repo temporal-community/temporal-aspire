@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TemporalCommunity.Aspire.Hosting.SampleWorkflow;
 using Temporalio.Common.EnvConfig;
 using Temporalio.Extensions.Hosting;
-using TemporalCommunity.Aspire.Hosting.SampleWorkflow;
 
 var builder = Host.CreateApplicationBuilder(args);
 var connectOptions = ClientEnvConfig.LoadClientConnectOptions();

@@ -9,6 +9,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TemporalCommunity.Aspire.Hosting.SampleWorkflow\TemporalCommunity.Aspire.Hosting.SampleWorkflow.csproj" />
+    <ProjectReference Include="..\SampleWorkflow\SampleWorkflow.csproj" />
   </ItemGroup>
 </Project>

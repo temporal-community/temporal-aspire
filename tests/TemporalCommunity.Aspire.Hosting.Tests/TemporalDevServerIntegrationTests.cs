@@ -96,8 +96,8 @@ public class TemporalDevServerIntegrationTests
             var appHostPath = Path.Combine(
                 FindRepositoryRoot(),
                 "samples",
-                "TemporalCommunity.Aspire.Hosting.SampleAppHost",
-                "TemporalCommunity.Aspire.Hosting.SampleAppHost.csproj");
+                "SampleAppHost",
+                "SampleAppHost.csproj");
             using var process = StartProcess(
                 "aspire",
                 [
