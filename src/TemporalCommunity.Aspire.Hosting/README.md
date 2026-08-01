@@ -44,7 +44,8 @@ var temporal = builder.AddTemporalCloud(
     temporalNamespace,
     temporalApiKey,
     temporalUiAddress,
-    temporalCodecAuth);
+    temporalCodecAuth,
+    configure: options => options.EnableHealthCheck = true);
 
 builder.AddProject<Projects.Worker>("worker")
     .WithReference(temporal);
@@ -53,6 +54,8 @@ builder.AddProject<Projects.Worker>("worker")
 Use Aspire parameters for production configuration, especially `builder.AddParameter("temporal-api-key", secret: true)` for API keys. The string overload only accepts address and namespace; API keys and UI addresses require Aspire parameters or the configure overload.
 
 `WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, and optional `TEMPORAL_UI_ADDRESS` and `TEMPORAL_CODEC_AUTH` when configured. Use secret Aspire parameters for API keys and codec credentials. Consumers should load connection values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
+
+Set `EnableHealthCheck` only when you want the AppHost to make an authenticated `GetSystemInfo` call to Temporal Cloud. Aspire displays the result on the Cloud resource and uses it for `WaitFor`, but this verifies endpoint reachability, TLS, and credentials only. It does not verify worker polling, task-queue capacity, or Temporal Cloud-wide availability. The Cloud resource remains excluded from deployment manifests, so this does not create an Azure Container Apps or Kubernetes readiness probe.
 
 ## Production guidance
 

@@ -6,6 +6,12 @@ namespace TemporalCommunity.Aspire.Hosting;
 public class TemporalCloudOptions
 {
     /// <summary>
+    /// Gets or sets a value indicating whether Aspire should verify authenticated connectivity to this Temporal Cloud namespace.
+    /// The check is disabled by default because it makes remote calls from the AppHost.
+    /// </summary>
+    public bool EnableHealthCheck { get; set; }
+
+    /// <summary>
     /// Gets or sets the Temporal Cloud namespace as a string or Aspire value provider such as <see cref="ParameterResource"/>.
     /// </summary>
     public object Namespace { get; set; } = "default";

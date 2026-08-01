@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace TemporalCommunity.Aspire.Hosting;
 
 /// <summary>
@@ -12,12 +14,14 @@ public static class TemporalCloudResourceExtensions
     /// <param name="name">The resource name.</param>
     /// <param name="address">The Temporal Cloud host:port address.</param>
     /// <param name="namespace">The Temporal Cloud namespace.</param>
+    /// <param name="configure">Optional action to configure the Cloud resource.</param>
     /// <returns>A builder for the Temporal Cloud resource.</returns>
     public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
         this IDistributedApplicationBuilder builder,
         string name,
         string address,
-        string @namespace)
+        string @namespace,
+        Action<TemporalCloudOptions>? configure = null)
     {
         return builder.AddTemporalCloud(
             name,
@@ -25,6 +29,7 @@ public static class TemporalCloudResourceExtensions
             options =>
             {
                 options.Namespace = @namespace;
+                configure?.Invoke(options);
             });
     }
 
@@ -38,6 +43,7 @@ public static class TemporalCloudResourceExtensions
     /// <param name="apiKey">Optional secret parameter containing the API key to inject into dependent resources.</param>
     /// <param name="uiAddress">Optional parameter containing the Temporal Cloud UI address.</param>
     /// <param name="codecAuth">Optional secret parameter containing the codec authentication token.</param>
+    /// <param name="configure">Optional action to configure the Cloud resource.</param>
     /// <returns>A builder for the Temporal Cloud resource.</returns>
     public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
         this IDistributedApplicationBuilder builder,
@@ -46,7 +52,8 @@ public static class TemporalCloudResourceExtensions
         string @namespace,
         IResourceBuilder<ParameterResource>? apiKey = null,
         IResourceBuilder<ParameterResource>? uiAddress = null,
-        IResourceBuilder<ParameterResource>? codecAuth = null)
+        IResourceBuilder<ParameterResource>? codecAuth = null,
+        Action<TemporalCloudOptions>? configure = null)
     {
         return builder.AddTemporalCloud(
             name,
@@ -57,6 +64,7 @@ public static class TemporalCloudResourceExtensions
                 options.ApiKey = apiKey?.Resource;
                 options.UIAddress = uiAddress?.Resource;
                 options.CodecAuth = codecAuth?.Resource;
+                configure?.Invoke(options);
             });
     }
 
@@ -70,6 +78,7 @@ public static class TemporalCloudResourceExtensions
     /// <param name="apiKey">Optional secret parameter containing the API key to inject into dependent resources.</param>
     /// <param name="uiAddress">Optional parameter containing the Temporal Cloud UI address.</param>
     /// <param name="codecAuth">Optional secret parameter containing the codec authentication token.</param>
+    /// <param name="configure">Optional action to configure the Cloud resource.</param>
     /// <returns>A builder for the Temporal Cloud resource.</returns>
     public static IResourceBuilder<TemporalCloudResource> AddTemporalCloud(
         this IDistributedApplicationBuilder builder,
@@ -78,7 +87,8 @@ public static class TemporalCloudResourceExtensions
         IResourceBuilder<ParameterResource> @namespace,
         IResourceBuilder<ParameterResource>? apiKey = null,
         IResourceBuilder<ParameterResource>? uiAddress = null,
-        IResourceBuilder<ParameterResource>? codecAuth = null)
+        IResourceBuilder<ParameterResource>? codecAuth = null,
+        Action<TemporalCloudOptions>? configure = null)
     {
         return builder.AddTemporalCloud(
             name,
@@ -89,6 +99,7 @@ public static class TemporalCloudResourceExtensions
                 options.ApiKey = apiKey?.Resource;
                 options.UIAddress = uiAddress?.Resource;
                 options.CodecAuth = codecAuth?.Resource;
+                configure?.Invoke(options);
             });
     }
 
@@ -111,6 +122,17 @@ public static class TemporalCloudResourceExtensions
 
         var resourceBuilder = builder.AddResource(resource)
             .ExcludeFromManifest();
+
+        if (resource.Options.EnableHealthCheck)
+        {
+            var healthCheckKey = $"{name}_check";
+            var clientAccessor = TemporalHealthCheckHelper.RegisterCloudClientAccessor(resource);
+
+            builder.Services.AddHealthChecks()
+                .AddTemporalHealthCheck(clientAccessor, healthCheckKey);
+
+            resourceBuilder = resourceBuilder.WithHealthCheck(healthCheckKey);
+        }
 
         return resource.Options.UIAddress switch
         {

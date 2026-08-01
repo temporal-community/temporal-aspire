@@ -40,12 +40,20 @@ public class TemporalCloudResourceTests
         var uiAddress = appBuilder.AddParameter("temporal-ui-address");
         var codecAuth = appBuilder.AddParameter("temporal-codec-auth", secret: true);
 
-        var temporal = appBuilder.AddTemporalCloud("temporal", address, @namespace, apiKey, uiAddress, codecAuth);
+        var temporal = appBuilder.AddTemporalCloud(
+            "temporal",
+            address,
+            @namespace,
+            apiKey,
+            uiAddress,
+            codecAuth,
+            configure: options => options.EnableHealthCheck = true);
 
         Assert.Same(@namespace.Resource, temporal.Resource.Options.Namespace);
         Assert.Same(apiKey.Resource, temporal.Resource.Options.ApiKey);
         Assert.Same(uiAddress.Resource, temporal.Resource.Options.UIAddress);
         Assert.Same(codecAuth.Resource, temporal.Resource.Options.CodecAuth);
+        Assert.True(temporal.Resource.Options.EnableHealthCheck);
         Assert.Contains(address.Resource, temporal.Resource.ConnectionStringExpression.ValueProviders);
     }
 
@@ -139,6 +147,48 @@ public class TemporalCloudResourceTests
 
         Assert.Empty(temporal.Resource.Annotations.OfType<ResourceUrlAnnotation>());
         Assert.Empty(temporal.Resource.Annotations.OfType<ResourceUrlsCallbackAnnotation>());
+    }
+
+    [Fact]
+    public void AddTemporalCloud_AddsHealthCheckOnlyWhenEnabled()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+
+        var disabled = appBuilder.AddTemporalCloud(
+            "disabled",
+            ReferenceExpression.Create($"orders.prod.tmprl.cloud:7233"),
+            options => options.Namespace = "orders.prod");
+        var enabled = appBuilder.AddTemporalCloud(
+            "enabled",
+            ReferenceExpression.Create($"orders.prod.tmprl.cloud:7233"),
+            options =>
+            {
+                options.Namespace = "orders.prod";
+                options.EnableHealthCheck = true;
+            });
+
+        Assert.Empty(disabled.Resource.Annotations.OfType<HealthCheckAnnotation>());
+        var annotation = Assert.Single(enabled.Resource.Annotations.OfType<HealthCheckAnnotation>());
+        Assert.Equal("enabled_check", annotation.Key);
+    }
+
+    [Fact]
+    public void AddTemporalCloud_RemainsExcludedFromProductionManifests()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+
+        var temporal = appBuilder.AddTemporalCloud(
+            "temporal",
+            ReferenceExpression.Create($"orders.prod.tmprl.cloud:7233"),
+            options =>
+            {
+                options.Namespace = "orders.prod";
+                options.EnableHealthCheck = true;
+            });
+
+        Assert.Contains(
+            temporal.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>(),
+            annotation => annotation.Callback is null);
     }
 
     [Fact]
