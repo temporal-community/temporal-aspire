@@ -13,5 +13,25 @@ The worker and client both load connection settings with `ClientEnvConfig.LoadCl
 For production, keep the AppHost pointed at an externally managed Temporal endpoint such as Temporal Cloud. Run at least two workers per task queue, tune task slots, sticky cache, and pollers from load tests, use Worker Versioning for workflow-code rollouts, and configure graceful shutdown. Monitor CPU/memory, Schedule-to-Start latency, available task slots, and request failures/latency together. Use KEDA or Temporal Worker Controller scale-to-zero only when the workload can tolerate worker cold-start latency.
 
 ```bash
-aspire run --apphost samples/SampleAppHost/SampleAppHost.csproj
+aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interactive
 ```
+
+## Temporal Cloud sample
+
+`SampleCloudAppHost` connects the same worker and client projects to a Temporal Cloud namespace. It declares the Temporal endpoint, namespace, API key, and Cloud UI address as Aspire parameters. The API key is secret; the UI address is deliberately not, because Aspire uses it to display a **Temporal Cloud** link in the dashboard and injects it as `TEMPORAL_UI_ADDRESS` into referenced projects.
+
+The sample enables the optional Cloud health check so the dashboard verifies an authenticated `GetSystemInfo` call before starting the worker and client. It verifies endpoint reachability, TLS, and credentials—not task-queue polling or worker capacity.
+
+Set the API key in the Cloud AppHost's user-secrets store:
+
+```bash
+aspire secret set Parameters:temporal-api-key "your-api-key" \
+  --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj
+
+Parameters__temporal_address="your-namespace.your-account.tmprl.cloud:7233" \
+Parameters__temporal_namespace="your-namespace.your-account" \
+Parameters__temporal_ui_address="https://cloud.temporal.io/namespaces/your-namespace.your-account" \
+aspire start --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj --non-interactive
+```
+
+The address, namespace, and UI address are ordinary external configuration; the UI URL should not be put in a deployment secret store. Do not commit API keys. If your deployment uses a payload codec, add a separate secret `temporal-codec-auth` parameter and pass it as the sixth argument to `AddTemporalCloud`.

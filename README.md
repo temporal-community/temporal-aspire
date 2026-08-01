@@ -79,26 +79,23 @@ builder.AddProject<Projects.Worker>("worker")
 
 Use Aspire parameters for production configuration, especially `builder.AddParameter("temporal-api-key", secret: true)` for API keys. The string overload only accepts address and namespace; API keys and UI addresses require Aspire parameters or the configure overload.
 
-Set the parameter values for local development with the Aspire CLI. The key format is `Parameters:<parameter-name>`, and `--apphost` targets the AppHost project that declares the parameters:
+Set the API key with the Aspire CLI. The key format is `Parameters:<parameter-name>`, and `--apphost` targets the AppHost project that declares the parameters:
 
 ```bash
-aspire secret set Parameters:temporal-address "your-namespace.your-account.tmprl.cloud:7233" \
-  --apphost samples/SampleAppHost/SampleAppHost.csproj
-
-aspire secret set Parameters:temporal-namespace "your-namespace.your-account" \
-  --apphost samples/SampleAppHost/SampleAppHost.csproj
-
 aspire secret set Parameters:temporal-api-key "your-api-key" \
-  --apphost samples/SampleAppHost/SampleAppHost.csproj
-
-aspire secret set Parameters:temporal-ui-address "https://cloud.temporal.io/namespaces/your-namespace.your-account" \
-  --apphost samples/SampleAppHost/SampleAppHost.csproj
-
-aspire secret set Parameters:temporal-codec-auth "your-codec-auth-token" \
-  --apphost samples/SampleAppHost/SampleAppHost.csproj
+  --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj
 ```
 
-Use `aspire secret list --apphost <path-to-apphost>` to confirm the values were saved. Keep API keys and codec credentials in user secrets or your deployment secret store; do not commit them to source control.
+Set the address, namespace, and optional UI URL with ordinary configuration. In a shell, use Aspire's environment-variable convention (`-` becomes `_`):
+
+```bash
+Parameters__temporal_address="your-namespace.your-account.tmprl.cloud:7233" \
+Parameters__temporal_namespace="your-namespace.your-account" \
+Parameters__temporal_ui_address="https://cloud.temporal.io/namespaces/your-namespace.your-account" \
+aspire start --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj --non-interactive
+```
+
+Use `aspire secret list --apphost <path-to-apphost>` to confirm secret values were saved. Keep API keys and codec credentials in user secrets or your deployment secret store; do not commit them to source control. The Cloud UI URL is not a secret and should stay out of a deployment secret store. If you use a codec, declare `temporal-codec-auth` as a secret parameter and set it the same way as the API key.
 
 `WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, and optional `TEMPORAL_UI_ADDRESS` and `TEMPORAL_CODEC_AUTH` when configured. Use secret Aspire parameters for API keys and codec credentials. Consumers should load connection values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
 

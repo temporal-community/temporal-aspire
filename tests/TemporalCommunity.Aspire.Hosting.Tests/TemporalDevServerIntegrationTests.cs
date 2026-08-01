@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json.Nodes;
 using Aspire.Hosting;
 using TemporalCommunity.Aspire.Hosting;
 using Temporalio.Api.WorkflowService.V1;
@@ -12,6 +13,7 @@ namespace TemporalCommunity.Aspire.Hosting.Tests;
 public class TemporalDevServerIntegrationTests
 {
     private const string IntegrationTestEnvironmentVariable = "RUN_TEMPORAL_INTEGRATION_TESTS";
+    private static readonly SemaphoreSlim ManifestLock = new(1, 1);
 
     [Fact]
     public async Task CliServer_StartsWithReachableGrpcUiAndMetricsEndpoints()
@@ -88,43 +90,33 @@ public class TemporalDevServerIntegrationTests
         if (!IntegrationTestsEnabled())
             return;
 
-        var outputDirectory = Path.Combine(Path.GetTempPath(), $"temporal-aspire-manifest-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(outputDirectory);
+        var manifest = await PublishManifestAsync("SampleAppHost").ConfigureAwait(true);
 
-        try
-        {
-            var appHostPath = Path.Combine(
-                FindRepositoryRoot(),
-                "samples",
-                "SampleAppHost",
-                "SampleAppHost.csproj");
-            using var process = StartProcess(
-                "aspire",
-                [
-                    "do",
-                    "publish-manifest",
-                    "--apphost",
-                    appHostPath,
-                    "--output-path",
-                    outputDirectory,
-                    "--non-interactive",
-                    "--nologo"
-                ]);
+        Assert.DoesNotContain("\"temporal\"", manifest, StringComparison.Ordinal);
+    }
 
-            await process.WaitForExitAsync().ConfigureAwait(true);
-            var standardError = await process.StandardError.ReadToEndAsync().ConfigureAwait(true);
-            Assert.True(process.ExitCode == 0, standardError);
+    [Fact]
+    public async Task PublishManifest_CloudSampleWiresParametersAndExcludesCloudResource()
+    {
+        if (!IntegrationTestsEnabled())
+            return;
 
-            var manifestPath = Directory.EnumerateFiles(outputDirectory, "*.json", SearchOption.AllDirectories)
-                .Single(path => File.ReadAllText(path).Contains("\"resources\"", StringComparison.Ordinal));
-            var manifest = await File.ReadAllTextAsync(manifestPath).ConfigureAwait(true);
+        var manifest = await PublishManifestAsync(
+            "SampleCloudAppHost",
+            new Dictionary<string, string>
+            {
+                ["Parameters__temporal_address"] = "example.tmprl.cloud:7233",
+                ["Parameters__temporal_namespace"] = "example.namespace",
+                ["Parameters__temporal_api_key"] = "not-a-real-key",
+                ["Parameters__temporal_ui_address"] = "https://cloud.temporal.io/namespaces/example.namespace"
+            }).ConfigureAwait(true);
+        var resources = JsonNode.Parse(manifest)?["resources"]?.AsObject();
 
-            Assert.DoesNotContain("\"temporal\"", manifest, StringComparison.Ordinal);
-        }
-        finally
-        {
-            Directory.Delete(outputDirectory, recursive: true);
-        }
+        Assert.NotNull(resources);
+        Assert.DoesNotContain("temporal", resources);
+        Assert.True(resources["temporal-api-key"]?["inputs"]?["value"]?["secret"]?.GetValue<bool>());
+        Assert.Equal("{temporal-ui-address.value}", resources["sample-worker"]?["env"]?["TEMPORAL_UI_ADDRESS"]?.GetValue<string>());
+        Assert.Equal("{temporal-ui-address.value}", resources["sample-client"]?["env"]?["TEMPORAL_UI_ADDRESS"]?.GetValue<string>());
     }
 
     private static bool IntegrationTestsEnabled() =>
@@ -140,13 +132,22 @@ public class TemporalDevServerIntegrationTests
         MetricsPort = GetAvailablePort()
     };
 
-    private static Process StartProcess(string fileName, IEnumerable<string> arguments)
+    private static Process StartProcess(
+        string fileName,
+        IEnumerable<string> arguments,
+        IReadOnlyDictionary<string, string>? environmentVariables = null)
     {
         var startInfo = new ProcessStartInfo(fileName)
         {
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        if (environmentVariables is not null)
+        {
+            foreach (var (key, value) in environmentVariables)
+                startInfo.Environment[key] = value;
+        }
+
         foreach (var argument in arguments)
             startInfo.ArgumentList.Add(argument);
 
@@ -243,5 +244,64 @@ public class TemporalDevServerIntegrationTests
         }
 
         throw new DirectoryNotFoundException("Unable to locate the TemporalAspire repository root.");
+    }
+
+    private static async Task<string> PublishManifestAsync(
+        string appHostName,
+        IReadOnlyDictionary<string, string>? environmentVariables = null)
+    {
+        await ManifestLock.WaitAsync().ConfigureAwait(true);
+        try
+        {
+            var outputDirectory = Path.Combine(Path.GetTempPath(), $"temporal-aspire-manifest-{Guid.NewGuid():N}");
+            var configPath = Path.Combine(FindRepositoryRoot(), "samples", "aspire.config.json");
+            var originalConfig = await File.ReadAllTextAsync(configPath).ConfigureAwait(true);
+            Directory.CreateDirectory(outputDirectory);
+
+            try
+            {
+                var appHostPath = Path.Combine(
+                    FindRepositoryRoot(),
+                    "samples",
+                    appHostName,
+                    $"{appHostName}.csproj");
+                using var process = StartProcess(
+                    "aspire",
+                    [
+                        "do",
+                        "publish-manifest",
+                        "--apphost",
+                        appHostPath,
+                        "--output-path",
+                        outputDirectory,
+                        "--non-interactive",
+                        "--nologo"
+                    ],
+                    environmentVariables);
+
+                await process.WaitForExitAsync().ConfigureAwait(true);
+                var standardError = await process.StandardError.ReadToEndAsync().ConfigureAwait(true);
+                Assert.True(process.ExitCode == 0, standardError);
+
+                var manifestPath = Directory.EnumerateFiles(outputDirectory, "*.json", SearchOption.AllDirectories)
+                    .Single(path => File.ReadAllText(path).Contains("\"resources\"", StringComparison.Ordinal));
+                return await File.ReadAllTextAsync(manifestPath).ConfigureAwait(true);
+            }
+            finally
+            {
+                try
+                {
+                    Directory.Delete(outputDirectory, recursive: true);
+                }
+                finally
+                {
+                    await File.WriteAllTextAsync(configPath, originalConfig).ConfigureAwait(true);
+                }
+            }
+        }
+        finally
+        {
+            ManifestLock.Release();
+        }
     }
 }
