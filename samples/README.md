@@ -22,17 +22,17 @@ aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interact
 
 The sample enables the optional Cloud health check so the dashboard verifies an authenticated `GetSystemInfo` call before starting the worker and client. It verifies endpoint reachability, TLS, and credentials—not task-queue polling or worker capacity.
 
-Copy the included template to a gitignored `.secrets.env` file, replace the placeholder values, and source it before starting the sample:
+Copy the included template to a gitignored `.secrets.env` file, replace the placeholder values, and source it before starting the sample. `SampleCloudAppHost/aspire.config.json` selects the Cloud AppHost when `aspire start` is run from that folder; it does not fall back to the local `SampleAppHost` configured in the parent directory.
 
 ```bash
-cp samples/SampleCloudAppHost/.secrets.env.example \
-  samples/SampleCloudAppHost/.secrets.env
+cd samples/SampleCloudAppHost/
+cp .secrets.env.example .secrets.env
 
-# Edit samples/SampleCloudAppHost/.secrets.env with your Temporal Cloud values.
+# Edit .secrets.env with your Temporal Cloud values.
 
-source samples/SampleCloudAppHost/.secrets.env
+source .secrets.env
 
-aspire start --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj --non-interactive
+aspire start --non-interactive
 ```
 
 `temporal-api-key` remains a secret Aspire parameter even when its local value is sourced from the environment. The address, namespace, and UI address are ordinary external configuration; the UI URL should not be put in a deployment secret store. Do not commit API keys. If your deployment uses a payload codec, add `Parameters__temporal_codec_auth` to `.secrets.env`, declare a matching secret parameter, and pass it as the sixth argument to `AddTemporalCloud`.

@@ -109,7 +109,8 @@ public class TemporalDevServerIntegrationTests
                 ["Parameters__temporal_namespace"] = "example.namespace",
                 ["Parameters__temporal_api_key"] = "not-a-real-key",
                 ["Parameters__temporal_ui_address"] = "https://cloud.temporal.io/namespaces/example.namespace"
-            }).ConfigureAwait(true);
+            },
+            useAppHostConfiguration: true).ConfigureAwait(true);
         var resources = JsonNode.Parse(manifest)?["resources"]?.AsObject();
 
         Assert.NotNull(resources);
@@ -135,13 +136,17 @@ public class TemporalDevServerIntegrationTests
     private static Process StartProcess(
         string fileName,
         IEnumerable<string> arguments,
-        IReadOnlyDictionary<string, string>? environmentVariables = null)
+        IReadOnlyDictionary<string, string>? environmentVariables = null,
+        string? workingDirectory = null)
     {
         var startInfo = new ProcessStartInfo(fileName)
         {
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        if (workingDirectory is not null)
+            startInfo.WorkingDirectory = workingDirectory;
+
         if (environmentVariables is not null)
         {
             foreach (var (key, value) in environmentVariables)
@@ -248,7 +253,8 @@ public class TemporalDevServerIntegrationTests
 
     private static async Task<string> PublishManifestAsync(
         string appHostName,
-        IReadOnlyDictionary<string, string>? environmentVariables = null)
+        IReadOnlyDictionary<string, string>? environmentVariables = null,
+        bool useAppHostConfiguration = false)
     {
         await ManifestLock.WaitAsync().ConfigureAwait(true);
         try
@@ -260,24 +266,31 @@ public class TemporalDevServerIntegrationTests
 
             try
             {
-                var appHostPath = Path.Combine(
+                var appHostDirectory = Path.Combine(
                     FindRepositoryRoot(),
                     "samples",
-                    appHostName,
-                    $"{appHostName}.csproj");
+                    appHostName);
+                var arguments = new List<string>
+                {
+                    "do",
+                    "publish-manifest"
+                };
+                if (!useAppHostConfiguration)
+                {
+                    arguments.Add("--apphost");
+                    arguments.Add(Path.Combine(appHostDirectory, $"{appHostName}.csproj"));
+                }
+
+                arguments.Add("--output-path");
+                arguments.Add(outputDirectory);
+                arguments.Add("--non-interactive");
+                arguments.Add("--nologo");
+
                 using var process = StartProcess(
                     "aspire",
-                    [
-                        "do",
-                        "publish-manifest",
-                        "--apphost",
-                        appHostPath,
-                        "--output-path",
-                        outputDirectory,
-                        "--non-interactive",
-                        "--nologo"
-                    ],
-                    environmentVariables);
+                    arguments,
+                    environmentVariables,
+                    useAppHostConfiguration ? appHostDirectory : null);
 
                 await process.WaitForExitAsync().ConfigureAwait(true);
                 var standardError = await process.StandardError.ReadToEndAsync().ConfigureAwait(true);
