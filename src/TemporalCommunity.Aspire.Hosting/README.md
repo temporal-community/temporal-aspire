@@ -36,7 +36,6 @@ var temporalAddress = builder.AddParameter("temporal-address");
 var temporalNamespace = builder.AddParameter("temporal-namespace");
 var temporalApiKey = builder.AddParameter("temporal-api-key", secret: true);
 var temporalUiAddress = builder.AddParameter("temporal-ui-address");
-var temporalCodecAuth = builder.AddParameter("temporal-codec-auth", secret: true);
 
 var temporal = builder.AddTemporalCloud(
     "temporal",
@@ -44,20 +43,15 @@ var temporal = builder.AddTemporalCloud(
     temporalNamespace,
     temporalApiKey,
     temporalUiAddress,
-    temporalCodecAuth,
     configure: options => options.EnableHealthCheck = true);
 
 builder.AddProject<Projects.Worker>("worker")
     .WithReference(temporal);
 ```
 
-Use Aspire parameters for production configuration, especially `builder.AddParameter("temporal-api-key", secret: true)` for API keys. The string overload only accepts address and namespace; API keys and UI addresses require Aspire parameters or the configure overload.
+Use secret parameters for API keys and codec credentials. A UI address adds a **Temporal Dashboard** link in Aspire. `WithReference` supplies the Temporal connection environment variables to consuming projects, which can load them with `ClientEnvConfig.LoadClientConnectOptions()`.
 
-When a UI address is configured, Aspire shows the resource source as **Temporal Cloud** and adds a **Temporal Dashboard** link to the resource row.
-
-`WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, and optional `TEMPORAL_UI_ADDRESS` and `TEMPORAL_CODEC_AUTH` when configured. Use secret Aspire parameters for API keys and codec credentials. Consumers should load connection values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
-
-Set `EnableHealthCheck` only when you want the AppHost to make an authenticated `GetSystemInfo` call to Temporal Cloud. Aspire displays the result on the Cloud resource and uses it for `WaitFor`, but this verifies endpoint reachability, TLS, and credentials only. It does not verify worker polling, task-queue capacity, or Temporal Cloud-wide availability. The Cloud resource remains excluded from deployment manifests, so this does not create an Azure Container Apps or Kubernetes readiness probe.
+`EnableHealthCheck` verifies the endpoint, TLS, and credentials with `GetSystemInfo`; it does not verify worker or task-queue health.
 
 ## Persist development state
 

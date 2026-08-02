@@ -55,14 +55,13 @@ var temporal = builder.AddTemporalCliServer();
 
 ## Temporal Cloud
 
-Use `AddTemporalCloud` for an externally managed Temporal Cloud namespace. The resource injects connection settings into referenced projects without adding Aspire service discovery for the external endpoint.
+Use `AddTemporalCloud` to reference an externally managed Temporal Cloud namespace.
 
 ```csharp
 var temporalAddress = builder.AddParameter("temporal-address");
 var temporalNamespace = builder.AddParameter("temporal-namespace");
 var temporalApiKey = builder.AddParameter("temporal-api-key", secret: true);
 var temporalUiAddress = builder.AddParameter("temporal-ui-address");
-var temporalCodecAuth = builder.AddParameter("temporal-codec-auth", secret: true);
 
 var temporal = builder.AddTemporalCloud(
     "temporal",
@@ -70,38 +69,15 @@ var temporal = builder.AddTemporalCloud(
     temporalNamespace,
     temporalApiKey,
     temporalUiAddress,
-    temporalCodecAuth,
     configure: options => options.EnableHealthCheck = true);
 
 builder.AddProject<Projects.Worker>("worker")
     .WithReference(temporal);
 ```
 
-Use Aspire parameters for production configuration, especially `builder.AddParameter("temporal-api-key", secret: true)` for API keys. The string overload only accepts address and namespace; API keys and UI addresses require Aspire parameters or the configure overload.
+Use secret parameters for API keys and codec credentials. A UI address adds a **Temporal Dashboard** link in Aspire. `WithReference` supplies the Temporal connection environment variables to consuming projects, which can load them with `ClientEnvConfig.LoadClientConnectOptions()`.
 
-When a UI address is configured, Aspire shows the resource source as **Temporal Cloud** and adds a **Temporal Dashboard** link to the resource row.
-
-Set the API key with the Aspire CLI. The key format is `Parameters:<parameter-name>`, and `--apphost` targets the AppHost project that declares the parameters:
-
-```bash
-aspire secret set Parameters:temporal-api-key "your-api-key" \
-  --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj
-```
-
-Set the address, namespace, and optional UI URL with ordinary configuration. In a shell, use Aspire's environment-variable convention (`-` becomes `_`):
-
-```bash
-Parameters__temporal_address="your-namespace.your-account.tmprl.cloud:7233" \
-Parameters__temporal_namespace="your-namespace.your-account" \
-Parameters__temporal_ui_address="https://cloud.temporal.io/namespaces/your-namespace.your-account" \
-aspire start --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj --non-interactive
-```
-
-Use `aspire secret list --apphost <path-to-apphost>` to confirm secret values were saved. Keep API keys and codec credentials in user secrets or your deployment secret store; do not commit them to source control. The Cloud UI URL is not a secret and should stay out of a deployment secret store. If you use a codec, declare `temporal-codec-auth` as a secret parameter and set it the same way as the API key.
-
-`WithReference` injects `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, and optional `TEMPORAL_UI_ADDRESS` and `TEMPORAL_CODEC_AUTH` when configured. Unless the consuming resource already has an explicit certificate trust scope, it also selects Aspire's system certificate trust scope during local run mode so the Temporal SDK's Rust transport can trust both system roots and Aspire development certificates. Certificate trust customization is not included in publish or deployment artifacts. Use secret Aspire parameters for API keys and codec credentials. Consumers should load connection values with the Temporal .NET SDK environment config (`ClientEnvConfig.LoadClientConnectOptions()`); the SDK maps `TEMPORAL_API_KEY` to `TemporalClientConnectOptions.ApiKey` and enables TLS automatically.
-
-Set `EnableHealthCheck` only when you want the AppHost to make an authenticated `GetSystemInfo` call to Temporal Cloud. Aspire displays the result on the Cloud resource and uses it for `WaitFor`, but this verifies endpoint reachability, TLS, and credentials only. It does not verify worker polling, task-queue capacity, or Temporal Cloud-wide availability. The Cloud resource remains excluded from deployment manifests, so this does not create an Azure Container Apps or Kubernetes readiness probe.
+`EnableHealthCheck` verifies the endpoint, TLS, and credentials with `GetSystemInfo`; it does not verify worker or task-queue health. See the [samples README](samples/README.md) for configuration and startup instructions.
 
 ## Persist local development state
 
@@ -131,15 +107,27 @@ temporal.WithVolume("temporal-data", "/home/temporal");
 
 When `UI = false`, the resource does not publish a dashboard URL or `TEMPORAL_UI_ADDRESS`. Development resources expose `/metrics` on the configured metrics port.
 
-## Run the sample
+## Run the samples
 
-This repo includes a runnable Aspire sample with an AppHost, worker, client, and workflow.
+Both samples use the same worker, client, and workflow projects.
+
+Local development server:
 
 ```bash
-aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj
+aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interactive
 ```
 
-The sample starts a local Temporal development server, runs a worker, and executes a workflow from the client.
+Temporal Cloud:
+
+```bash
+cd samples/SampleCloudAppHost
+cp .secrets.env.example .secrets.env
+# Add your Temporal Cloud values to .secrets.env.
+source .secrets.env
+aspire start --non-interactive
+```
+
+See the [samples README](samples/README.md) for details.
 
 ## Resources
 
