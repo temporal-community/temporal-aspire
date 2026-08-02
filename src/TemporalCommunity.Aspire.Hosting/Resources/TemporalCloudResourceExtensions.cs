@@ -121,7 +121,14 @@ public static class TemporalCloudResourceExtensions
         configure?.Invoke(resource.Options);
 
         var resourceBuilder = builder.AddResource(resource)
-            .ExcludeFromManifest();
+            .ExcludeFromManifest()
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = "temporal-cloud",
+                CreationTimeStamp = DateTime.UtcNow,
+                State = KnownResourceStates.Running,
+                Properties = []
+            });
 
         if (resource.Options.EnableHealthCheck)
         {
@@ -157,8 +164,14 @@ public static class TemporalCloudResourceExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(
         this IResourceBuilder<TDestination> builder,
         IResourceBuilder<TemporalCloudResource> source)
-        where TDestination : IResourceWithEnvironment
+        where TDestination : IResourceWithEnvironment, IResourceWithArgs
     {
+        if (!builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var certificateAuthorities) ||
+            certificateAuthorities.Scope is null)
+        {
+            builder = builder.WithCertificateTrustScope(CertificateTrustScope.System);
+        }
+
         return builder.WithEnvironment(ctx =>
         {
             TemporalEnvironmentHelper.AddEnvironmentVariables(

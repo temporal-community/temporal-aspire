@@ -58,6 +58,22 @@ public class TemporalCloudResourceTests
     }
 
     [Fact]
+    public void AddTemporalCloud_InitializesExternalResourceAsRunning()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+
+        var temporal = appBuilder.AddTemporalCloud(
+            "temporal",
+            "orders.prod.tmprl.cloud:7233",
+            "orders.prod");
+
+        var snapshot = Assert.Single(
+            temporal.Resource.Annotations.OfType<ResourceSnapshotAnnotation>()).InitialSnapshot;
+        Assert.Equal("temporal-cloud", snapshot.ResourceType);
+        Assert.Equal(KnownResourceStates.Running, snapshot.State?.Text);
+    }
+
+    [Fact]
     public async Task WithReference_ForCloud_WiresTemporalEnvironmentVariables()
     {
         var appBuilder = DistributedApplication.CreateBuilder([]);
@@ -82,6 +98,28 @@ public class TemporalCloudResourceTests
         Assert.Same(apiKey.Resource, environmentVariables["TEMPORAL_API_KEY"]);
         Assert.Same(uiAddress.Resource, environmentVariables["TEMPORAL_UI_ADDRESS"]);
         Assert.Same(codecAuth.Resource, environmentVariables["TEMPORAL_CODEC_AUTH"]);
+
+        var certificateAuthorities = Assert.Single(
+            worker.Resource.Annotations.OfType<CertificateAuthorityCollectionAnnotation>());
+        Assert.Equal(CertificateTrustScope.System, certificateAuthorities.Scope);
+    }
+
+    [Fact]
+    public void WithReference_ForCloud_PreservesExplicitCertificateTrustScope()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var temporal = appBuilder.AddTemporalCloud(
+            "temporal",
+            "orders.prod.tmprl.cloud:7233",
+            "orders.prod");
+
+        var worker = appBuilder.AddContainer("worker", "busybox")
+            .WithCertificateTrustScope(CertificateTrustScope.None)
+            .WithReference(temporal);
+
+        var certificateAuthorities = Assert.Single(
+            worker.Resource.Annotations.OfType<CertificateAuthorityCollectionAnnotation>());
+        Assert.Equal(CertificateTrustScope.None, certificateAuthorities.Scope);
     }
 
     [Fact]

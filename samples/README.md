@@ -20,7 +20,7 @@ aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interact
 
 `SampleCloudAppHost` connects the same worker and client projects to a Temporal Cloud namespace. It declares the Temporal endpoint, namespace, API key, and Cloud UI address as Aspire parameters. The API key is secret; the UI address is deliberately not, because Aspire uses it to display a **Temporal Cloud** link in the dashboard and injects it as `TEMPORAL_UI_ADDRESS` into referenced projects.
 
-The sample enables the optional Cloud health check so the dashboard verifies an authenticated `GetSystemInfo` call before starting the worker and client. It verifies endpoint reachability, TLS, and credentials—not task-queue polling or worker capacity.
+The sample enables the optional Cloud health check so the dashboard verifies an authenticated `GetSystemInfo` call before starting the worker and client. It verifies endpoint reachability, TLS, and credentials—not task-queue polling or worker capacity. Unless a referenced resource already has an explicit trust scope, the hosting integration automatically configures Aspire's system certificate trust scope during local run mode; the sample projects do not need certificate-specific configuration.
 
 Copy the included template to a gitignored `.secrets.env` file, replace the placeholder values, and source it before starting the sample. `SampleCloudAppHost/aspire.config.json` selects the Cloud AppHost when `aspire start` is run from that folder; it does not fall back to the local `SampleAppHost` configured in the parent directory.
 
