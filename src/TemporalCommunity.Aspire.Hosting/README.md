@@ -89,5 +89,6 @@ When `UI = false`, the resource does not publish a dashboard URL or `TEMPORAL_UI
 
 ## Resources
 
+- [Temporal .NET SDK](https://github.com/temporalio/sdk-dotnet)
 - [Temporal .NET SDK documentation](https://docs.temporal.io/develop/dotnet/)
 - [Temporal production deployment documentation](https://docs.temporal.io/production-deployment)
