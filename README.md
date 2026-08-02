@@ -103,47 +103,17 @@ Use `aspire secret list --apphost <path-to-apphost>` to confirm secret values we
 
 Set `EnableHealthCheck` only when you want the AppHost to make an authenticated `GetSystemInfo` call to Temporal Cloud. Aspire displays the result on the Cloud resource and uses it for `WaitFor`, but this verifies endpoint reachability, TLS, and credentials only. It does not verify worker polling, task-queue capacity, or Temporal Cloud-wide availability. The Cloud resource remains excluded from deployment manifests, so this does not create an Azure Container Apps or Kubernetes readiness probe.
 
-## Production deployment guidance
-
-Use `AddTemporalCloud` or another externally managed Temporal endpoint for production deployments. The local, CLI, and container resources are intended for development and are excluded from generated Aspire deployment manifests.
-
-Temporal workers are external processes that poll task queues. Queued Workflow and Activity tasks remain in Temporal when no workers are available, but worker scaling changes user-visible latency:
-
-- Run at least two worker replicas for each production task queue so a rollout or instance failure does not stop polling; keep them always-on for latency-sensitive work.
-- Use KEDA or Temporal Worker Controller scale-to-zero patterns for long-idle workloads when cold-start latency is acceptable.
-- Size workers by task queue and workload characteristics rather than applying one replica policy globally.
-- Tune task slots, sticky-cache size, and poller counts from representative load tests; do not assume SDK defaults are production settings.
-- Use Worker Versioning for workflow-code rollouts, configure graceful shutdown so active Tasks can finish, and monitor worker CPU/memory, Schedule-to-Start latency, available task slots, and Temporal request failures/latency together.
-
-For Azure Container Apps or Kubernetes, inject Temporal Cloud address, namespace, and API key as parameters or secrets, then let worker/client code load them with `ClientEnvConfig.LoadClientConnectOptions()`.
-
 ## Persist local development state
 
 The local development server uses an in-memory database by default. To persist state between runs, set Temporal's dev-server database filename:
 
 ```csharp
-var appHostDirectory = FindAncestor(AppContext.BaseDirectory, "MyApp.AppHost");
-var temporalDataDirectory = Path.Combine(Directory.GetParent(appHostDirectory)!.FullName, ".temporal");
-Directory.CreateDirectory(temporalDataDirectory);
+Directory.CreateDirectory("../.temporal");
 
 var temporal = builder.AddTemporalLocalDevServer("temporal", options =>
 {
-    options.DevServerOptions.DatabaseFilename = Path.Combine(temporalDataDirectory, "temporal.db");
+    options.DevServerOptions.DatabaseFilename = "../.temporal/temporal.db";
 });
-
-static string FindAncestor(string startPath, string directoryName)
-{
-    var directory = new DirectoryInfo(startPath);
-    while (directory is not null)
-    {
-        if (string.Equals(directory.Name, directoryName, StringComparison.Ordinal))
-            return directory.FullName;
-
-        directory = directory.Parent;
-    }
-
-    throw new DirectoryNotFoundException($"Could not find ancestor directory '{directoryName}'.");
-}
 ```
 
 For the container-based resource, use a container path and mount a volume:
@@ -170,3 +140,8 @@ aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj
 ```
 
 The sample starts a local Temporal development server, runs a worker, and executes a workflow from the client.
+
+## Resources
+
+- [Temporal .NET SDK documentation](https://docs.temporal.io/develop/dotnet/)
+- [Temporal production deployment documentation](https://docs.temporal.io/production-deployment)

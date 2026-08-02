@@ -59,39 +59,17 @@ When a UI address is configured, Aspire shows the resource source as **Temporal 
 
 Set `EnableHealthCheck` only when you want the AppHost to make an authenticated `GetSystemInfo` call to Temporal Cloud. Aspire displays the result on the Cloud resource and uses it for `WaitFor`, but this verifies endpoint reachability, TLS, and credentials only. It does not verify worker polling, task-queue capacity, or Temporal Cloud-wide availability. The Cloud resource remains excluded from deployment manifests, so this does not create an Azure Container Apps or Kubernetes readiness probe.
 
-## Production guidance
-
-Use `AddTemporalCloud` or another externally managed Temporal endpoint for production deployments. The local, CLI, and container resources are intended for development and are excluded from generated Aspire deployment manifests.
-
-Temporal workers poll task queues from outside Temporal. Queued work remains durable if no workers are running, but latency depends on how quickly workers are available. Run at least two worker replicas for every production task queue and keep them always-on for latency-sensitive work; use KEDA or Temporal Worker Controller scale-to-zero patterns only when the workload can tolerate cold-start latency. Tune task slots, sticky-cache size, and poller counts from load tests, use Worker Versioning for workflow-code rollouts, configure graceful shutdown, and monitor worker CPU/memory, Schedule-to-Start latency, available task slots, and Temporal request failures/latency together.
-
 ## Persist development state
 
 Set Temporal's dev-server database filename to persist local development state:
 
 ```csharp
-var appHostDirectory = FindAncestor(AppContext.BaseDirectory, "MyApp.AppHost");
-var temporalDataDirectory = Path.Combine(Directory.GetParent(appHostDirectory)!.FullName, ".temporal");
-Directory.CreateDirectory(temporalDataDirectory);
+Directory.CreateDirectory("../.temporal");
 
 var temporal = builder.AddTemporalLocalDevServer("temporal", options =>
 {
-    options.DevServerOptions.DatabaseFilename = Path.Combine(temporalDataDirectory, "temporal.db");
+    options.DevServerOptions.DatabaseFilename = "../.temporal/temporal.db";
 });
-
-static string FindAncestor(string startPath, string directoryName)
-{
-    var directory = new DirectoryInfo(startPath);
-    while (directory is not null)
-    {
-        if (string.Equals(directory.Name, directoryName, StringComparison.Ordinal))
-            return directory.FullName;
-
-        directory = directory.Parent;
-    }
-
-    throw new DirectoryNotFoundException($"Could not find ancestor directory '{directoryName}'.");
-}
 ```
 
 For `AddTemporalDevContainer`, use a container path and mount a volume:
@@ -108,3 +86,8 @@ temporal.WithVolume("temporal-data", "/home/temporal");
 `DevServerOptions` is marked unstable by the Temporal .NET SDK and may change in future SDK versions.
 
 When `UI = false`, the resource does not publish a dashboard URL or `TEMPORAL_UI_ADDRESS`. Development resources expose `/metrics` on the configured metrics port.
+
+## Resources
+
+- [Temporal .NET SDK documentation](https://docs.temporal.io/develop/dotnet/)
+- [Temporal production deployment documentation](https://docs.temporal.io/production-deployment)
