@@ -22,15 +22,18 @@ aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interact
 
 The sample enables the optional Cloud health check so the dashboard verifies an authenticated `GetSystemInfo` call before starting the worker and client. It verifies endpoint reachability, TLS, and credentials—not task-queue polling or worker capacity.
 
-Set the API key in the Cloud AppHost's user-secrets store:
+Use the following commands to configure the sample for the current shell. The API key is stored as an Aspire secret; the address, namespace, and UI URL are ordinary configuration values:
 
 ```bash
 aspire secret set Parameters:temporal-api-key "your-api-key" \
   --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj
 
-Parameters__temporal_address="your-namespace.your-account.tmprl.cloud:7233" \
-Parameters__temporal_namespace="your-namespace.your-account" \
-Parameters__temporal_ui_address="https://cloud.temporal.io/namespaces/your-namespace.your-account" \
+export Parameters__temporal_address="your-namespace.your-account.tmprl.cloud:7233"
+
+export Parameters__temporal_namespace="your-namespace.your-account"
+
+export Parameters__temporal_ui_address="https://cloud.temporal.io/namespaces/your-namespace.your-account"
+
 aspire start --apphost samples/SampleCloudAppHost/SampleCloudAppHost.csproj --non-interactive
 ```
 
