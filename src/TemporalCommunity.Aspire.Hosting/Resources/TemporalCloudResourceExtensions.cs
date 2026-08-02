@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Immutable;
 
 namespace TemporalCommunity.Aspire.Hosting;
 
@@ -7,6 +8,9 @@ namespace TemporalCommunity.Aspire.Hosting;
 /// </summary>
 public static class TemporalCloudResourceExtensions
 {
+    private const string CloudSource = "Temporal Cloud";
+    private const string DashboardDisplayName = "Temporal Dashboard";
+
     /// <summary>
     /// Adds an externally managed Temporal Cloud namespace to the distributed application.
     /// </summary>
@@ -127,7 +131,22 @@ public static class TemporalCloudResourceExtensions
                 ResourceType = "temporal-cloud",
                 CreationTimeStamp = DateTime.UtcNow,
                 State = KnownResourceStates.Running,
-                Properties = []
+                Properties =
+                [
+                    new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, CloudSource)
+                ],
+                Urls = CreateDashboardUrlSnapshots(resource.Options.UIAddress as string)
+            })
+            .OnInitializeResource(async (cloudResource, @event, cancellationToken) =>
+            {
+                var urls = await ResolveDashboardUrlSnapshotsAsync(
+                    cloudResource.Options.UIAddress,
+                    cancellationToken);
+
+                await @event.Notifications.PublishUpdateAsync(cloudResource, snapshot => snapshot with
+                {
+                    Urls = urls
+                });
             });
 
         if (resource.Options.EnableHealthCheck)
@@ -144,13 +163,42 @@ public static class TemporalCloudResourceExtensions
         return resource.Options.UIAddress switch
         {
             string uiAddress when !string.IsNullOrEmpty(uiAddress) =>
-                resourceBuilder.WithUrl(uiAddress, "Temporal Cloud"),
+                resourceBuilder.WithUrl(uiAddress, DashboardDisplayName),
             ParameterResource uiAddress =>
-                resourceBuilder.WithUrl(ReferenceExpression.Create($"{uiAddress}"), "Temporal Cloud"),
+                resourceBuilder.WithUrl(ReferenceExpression.Create($"{uiAddress}"), DashboardDisplayName),
             ReferenceExpression uiAddress =>
-                resourceBuilder.WithUrl(uiAddress, "Temporal Cloud"),
+                resourceBuilder.WithUrl(uiAddress, DashboardDisplayName),
             _ => resourceBuilder
         };
+    }
+
+    internal static async ValueTask<ImmutableArray<UrlSnapshot>> ResolveDashboardUrlSnapshotsAsync(
+        object? uiAddress,
+        CancellationToken cancellationToken)
+    {
+        var resolvedUiAddress = uiAddress switch
+        {
+            null => null,
+            string value => value,
+            IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken),
+            _ => null
+        };
+
+        return CreateDashboardUrlSnapshots(resolvedUiAddress);
+    }
+
+    private static ImmutableArray<UrlSnapshot> CreateDashboardUrlSnapshots(string? uiAddress)
+    {
+        if (string.IsNullOrWhiteSpace(uiAddress))
+            return [];
+
+        return
+        [
+            new UrlSnapshot(null, uiAddress, IsInternal: false)
+            {
+                DisplayProperties = new UrlDisplayPropertiesSnapshot(DashboardDisplayName)
+            }
+        ];
     }
 
     /// <summary>

@@ -79,6 +79,8 @@ builder.AddProject<Projects.Worker>("worker")
 
 Use Aspire parameters for production configuration, especially `builder.AddParameter("temporal-api-key", secret: true)` for API keys. The string overload only accepts address and namespace; API keys and UI addresses require Aspire parameters or the configure overload.
 
+When a UI address is configured, Aspire shows the resource source as **Temporal Cloud** and adds a **Temporal Dashboard** link to the resource row.
+
 Set the API key with the Aspire CLI. The key format is `Parameters:<parameter-name>`, and `--apphost` targets the AppHost project that declares the parameters:
 
 ```bash

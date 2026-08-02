@@ -71,6 +71,9 @@ public class TemporalCloudResourceTests
             temporal.Resource.Annotations.OfType<ResourceSnapshotAnnotation>()).InitialSnapshot;
         Assert.Equal("temporal-cloud", snapshot.ResourceType);
         Assert.Equal(KnownResourceStates.Running, snapshot.State?.Text);
+        var source = Assert.Single(snapshot.Properties);
+        Assert.Equal(CustomResourceKnownProperties.Source, source.Name);
+        Assert.Equal("Temporal Cloud", source.Value);
     }
 
     [Fact]
@@ -137,8 +140,14 @@ public class TemporalCloudResourceTests
             });
 
         var url = Assert.Single(temporal.Resource.Annotations.OfType<ResourceUrlAnnotation>());
-        Assert.Equal("Temporal Cloud", url.DisplayText);
+        Assert.Equal("Temporal Dashboard", url.DisplayText);
         Assert.Equal("https://cloud.temporal.io/namespaces/orders.prod", url.Url);
+
+        var snapshot = Assert.Single(
+            temporal.Resource.Annotations.OfType<ResourceSnapshotAnnotation>()).InitialSnapshot;
+        var snapshotUrl = Assert.Single(snapshot.Urls);
+        Assert.Equal("https://cloud.temporal.io/namespaces/orders.prod", snapshotUrl.Url);
+        Assert.Equal("Temporal Dashboard", snapshotUrl.DisplayProperties.DisplayName);
     }
 
     [Fact]
@@ -169,8 +178,15 @@ public class TemporalCloudResourceTests
         await annotation.Callback(context);
 
         var url = Assert.Single(urls);
-        Assert.Equal("Temporal Cloud", url.DisplayText);
+        Assert.Equal("Temporal Dashboard", url.DisplayText);
         Assert.Equal("https://cloud.temporal.io/namespaces/orders.prod", url.Url);
+
+        var snapshotUrls = await TemporalCloudResourceExtensions.ResolveDashboardUrlSnapshotsAsync(
+            uiAddress.Resource,
+            CancellationToken.None);
+        var snapshotUrl = Assert.Single(snapshotUrls);
+        Assert.Equal("https://cloud.temporal.io/namespaces/orders.prod", snapshotUrl.Url);
+        Assert.Equal("Temporal Dashboard", snapshotUrl.DisplayProperties.DisplayName);
     }
 
     [Fact]
