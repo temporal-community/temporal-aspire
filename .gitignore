@@ -22,6 +22,7 @@ TestResults/
 # Build artifacts
 artifacts/
 samples/.temporal/
+samples/SampleCloudAppHost/.secrets.env
 
 # Coding agent / project-local tooling
 skills-lock.json
