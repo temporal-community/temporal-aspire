@@ -114,17 +114,20 @@ Both samples use the same worker, client, and workflow projects.
 Local development server:
 
 ```bash
-aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interactive
+cd samples/SampleAppHost
+aspire start
 ```
 
 Temporal Cloud:
 
 ```bash
 cd samples/SampleCloudAppHost
+
 cp .secrets.env.example .secrets.env
 # Add your Temporal Cloud values to .secrets.env.
+
 source .secrets.env
-aspire start --non-interactive
+aspire start
 ```
 
 See the [samples README](samples/README.md) for details.
