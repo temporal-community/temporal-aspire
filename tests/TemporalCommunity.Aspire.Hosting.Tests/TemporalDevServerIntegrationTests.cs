@@ -80,7 +80,134 @@ public class TemporalDevServerIntegrationTests
         }
         finally
         {
+            await RunProcessAsync(
+                "docker",
+                ["stop", containerName],
+                assertSuccess: false).ConfigureAwait(true);
             await StopProcessAsync(process).ConfigureAwait(true);
+        }
+    }
+
+    [Fact]
+    public async Task ContainerResource_DefaultPortCollisionUsesAllocatedPortsAndInjectsDependentEnvironment()
+    {
+        if (!IntegrationTestsEnabled())
+            return;
+
+        await AssertDockerAvailableAsync().ConfigureAwait(true);
+
+        var blockerName = $"temporal-aspire-port-blocker-{Guid.NewGuid():N}";
+        Process? blockerProcess = null;
+        var appHostDirectory = Path.Combine(
+            FindRepositoryRoot(),
+            "tests",
+            "TemporalCommunity.Aspire.Hosting.TestAppHost");
+
+        try
+        {
+            if (DefaultPortsAreAvailable())
+            {
+                blockerProcess = StartProcess(
+                    "docker",
+                    [
+                        "run",
+                        "--rm",
+                        "--name",
+                        blockerName,
+                        "-p",
+                        $"{TemporalResourceConstants.DefaultServiceEndpointPort}:{TemporalResourceConstants.DefaultServiceEndpointPort}",
+                        "-p",
+                        $"{TemporalResourceConstants.DefaultUIEndpointPort}:{TemporalResourceConstants.DefaultUIEndpointPort}",
+                        "-p",
+                        $"{TemporalResourceConstants.DefaultMetricsEndpointPort}:{TemporalResourceConstants.DefaultMetricsEndpointPort}",
+                        $"docker.io/{TemporalResourceConstants.TemporalImage}:{TemporalResourceConstants.DefaultTag}",
+                        "server",
+                        "start-dev",
+                        "--ip",
+                        "0.0.0.0",
+                        "--port",
+                        TemporalResourceConstants.DefaultServiceEndpointPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "--metrics-port",
+                        TemporalResourceConstants.DefaultMetricsEndpointPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "--namespace",
+                        "default"
+                    ]);
+
+                await WaitForTemporalAsync(TemporalResourceConstants.DefaultServiceEndpointPort).ConfigureAwait(true);
+            }
+
+            await RunProcessAsync(
+                "aspire",
+                ["start", "--isolated", "--format", "Json", "--non-interactive", "--nologo"],
+                workingDirectory: appHostDirectory).ConfigureAwait(true);
+            await RunProcessAsync(
+                "aspire",
+                ["wait", "temporal", "--non-interactive"],
+                workingDirectory: appHostDirectory).ConfigureAwait(true);
+            await RunProcessAsync(
+                "aspire",
+                ["wait", "dependent", "--non-interactive"],
+                workingDirectory: appHostDirectory).ConfigureAwait(true);
+
+            var describeResult = await RunProcessAsync(
+                "aspire",
+                ["describe", "--format", "Json", "--non-interactive"],
+                workingDirectory: appHostDirectory).ConfigureAwait(true);
+            var resources = ParseDescribeResources(describeResult.StandardOutput);
+            var temporal = resources.Single(ResourceHasDisplayName("temporal"))!;
+            var dependent = resources.Single(ResourceHasDisplayName("dependent"))!;
+
+            Assert.Equal("Healthy", temporal["healthStatus"]?.GetValue<string>());
+
+            var servicePort = GetResourcePort(temporal, TemporalResourceConstants.ServiceEndpointName);
+            var uiPort = GetResourcePort(temporal, TemporalResourceConstants.UIEndpointName);
+            var metricsPort = GetResourcePort(temporal, TemporalResourceConstants.MetricsEndpointName);
+
+            Assert.NotEqual(TemporalResourceConstants.DefaultServiceEndpointPort, servicePort);
+            Assert.NotEqual(TemporalResourceConstants.DefaultUIEndpointPort, uiPort);
+            Assert.NotEqual(TemporalResourceConstants.DefaultMetricsEndpointPort, metricsPort);
+
+            var containerId = temporal["properties"]?["container.id"]?.GetValue<string>();
+            Assert.False(string.IsNullOrWhiteSpace(containerId));
+            await AssertContainerPortMappingAsync(
+                containerId,
+                TemporalResourceConstants.DefaultServiceEndpointPort,
+                servicePort).ConfigureAwait(true);
+            await AssertContainerPortMappingAsync(
+                containerId,
+                TemporalResourceConstants.DefaultUIEndpointPort,
+                uiPort).ConfigureAwait(true);
+            await AssertContainerPortMappingAsync(
+                containerId,
+                TemporalResourceConstants.DefaultMetricsEndpointPort,
+                metricsPort).ConfigureAwait(true);
+
+            var environment = dependent["environment"]?.AsObject();
+            Assert.NotNull(environment);
+            Assert.Equal($"localhost:{servicePort}", environment["TEMPORAL_ADDRESS"]?.GetValue<string>());
+            Assert.Equal($"http://localhost:{uiPort}", environment["TEMPORAL_UI_ADDRESS"]?.GetValue<string>());
+
+            await WaitForTemporalAsync(servicePort).ConfigureAwait(true);
+            await WaitForSuccessAsync(new Uri($"http://127.0.0.1:{uiPort}")).ConfigureAwait(true);
+            await WaitForSuccessAsync(new Uri($"http://127.0.0.1:{metricsPort}/metrics")).ConfigureAwait(true);
+        }
+        finally
+        {
+            await RunProcessAsync(
+                "aspire",
+                ["stop", "--non-interactive"],
+                workingDirectory: appHostDirectory,
+                assertSuccess: false).ConfigureAwait(true);
+
+            if (blockerProcess is not null)
+            {
+                await RunProcessAsync(
+                    "docker",
+                    ["stop", blockerName],
+                    assertSuccess: false).ConfigureAwait(true);
+                await blockerProcess.WaitForExitAsync().ConfigureAwait(true);
+                blockerProcess.Dispose();
+            }
         }
     }
 
@@ -166,6 +293,110 @@ public class TemporalDevServerIntegrationTests
 
         var standardError = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
         Assert.True(process.ExitCode == 0, standardError);
+    }
+
+    private static async Task AssertContainerPortMappingAsync(string? containerId, int targetPort, int hostPort)
+    {
+        var result = await RunProcessAsync(
+            "docker",
+            ["port", containerId!, $"{targetPort}/tcp"]).ConfigureAwait(true);
+
+        Assert.Contains($":{hostPort}", result.StandardOutput, StringComparison.Ordinal);
+    }
+
+    private static bool DefaultPortsAreAvailable() =>
+        IsPortAvailable(TemporalResourceConstants.DefaultServiceEndpointPort) &&
+        IsPortAvailable(TemporalResourceConstants.DefaultUIEndpointPort) &&
+        IsPortAvailable(TemporalResourceConstants.DefaultMetricsEndpointPort);
+
+    private static int GetResourcePort(JsonNode resource, string endpointName)
+    {
+        var urls = resource["urls"]?.AsArray() ?? throw new Xunit.Sdk.XunitException("Resource has no endpoint URLs.");
+        var endpoint = urls.Single(url =>
+            string.Equals(url?["name"]?.GetValue<string>(), endpointName, StringComparison.Ordinal));
+        var value = endpoint?["url"]?.GetValue<string>() ??
+            throw new Xunit.Sdk.XunitException($"Endpoint '{endpointName}' has no URL.");
+
+        return new Uri(value).Port;
+    }
+
+    private static bool IsPortAvailable(int port)
+    {
+        try
+        {
+            using var listener = new TcpListener(IPAddress.Any, port);
+            listener.Start();
+            return true;
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
+    }
+
+    private static JsonArray ParseDescribeResources(string output)
+    {
+        var jsonStart = output.IndexOf('{', StringComparison.Ordinal);
+        Assert.True(jsonStart >= 0, $"Aspire describe did not return JSON:{Environment.NewLine}{output}");
+
+        return JsonNode.Parse(output[jsonStart..])?["resources"]?.AsArray() ??
+            throw new Xunit.Sdk.XunitException("Aspire describe JSON has no resources array.");
+    }
+
+    private static Func<JsonNode?, bool> ResourceHasDisplayName(string displayName) =>
+        resource => string.Equals(
+            resource?["displayName"]?.GetValue<string>(),
+            displayName,
+            StringComparison.Ordinal);
+
+    private static async Task<ProcessResult> RunProcessAsync(
+        string fileName,
+        IEnumerable<string> arguments,
+        string? workingDirectory = null,
+        bool assertSuccess = true)
+    {
+        var startInfo = new ProcessStartInfo(fileName)
+        {
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false
+        };
+        if (workingDirectory is not null)
+            startInfo.WorkingDirectory = workingDirectory;
+
+        foreach (var argument in arguments)
+            startInfo.ArgumentList.Add(argument);
+
+        using var process = Process.Start(startInfo) ??
+            throw new InvalidOperationException($"Unable to start '{fileName}'.");
+        var standardOutputTask = process.StandardOutput.ReadToEndAsync();
+        var standardErrorTask = process.StandardError.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException exception)
+        {
+            process.Kill(entireProcessTree: true);
+            throw new Xunit.Sdk.XunitException($"'{fileName}' did not exit within two minutes.", exception);
+        }
+
+        var result = new ProcessResult(
+            process.ExitCode,
+            await standardOutputTask.ConfigureAwait(true),
+            await standardErrorTask.ConfigureAwait(true));
+        if (assertSuccess)
+        {
+            Assert.True(
+                result.ExitCode == 0,
+                $"'{fileName}' exited with code {result.ExitCode}.{Environment.NewLine}" +
+                $"stdout:{Environment.NewLine}{result.StandardOutput}{Environment.NewLine}" +
+                $"stderr:{Environment.NewLine}{result.StandardError}");
+        }
+
+        return result;
     }
 
     private static async Task WaitForTemporalAsync(int port)
@@ -317,4 +548,6 @@ public class TemporalDevServerIntegrationTests
             ManifestLock.Release();
         }
     }
+
+    private sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError);
 }

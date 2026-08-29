@@ -53,6 +53,19 @@ var temporal = builder.AddTemporalCliServer();
 
 `AddTemporalDevContainer` requires Docker. `AddTemporalCliServer` requires the Temporal CLI on `PATH`.
 
+`AddTemporalDevContainer` requires Aspire 13.5.3 or later. By default, Aspire allocates free host ports for the container while Temporal continues to listen inside the container on 7233 (gRPC), 8233 (UI), and 9233 (metrics). `WithReference` resolves the allocated ports automatically, so multiple AppHosts can run side by side without sharing a Temporal server accidentally.
+
+To request fixed host ports, configure non-default values explicitly:
+
+```csharp
+var temporal = builder.AddTemporalDevContainer("temporal", options =>
+{
+    options.TargetHost = "0.0.0.0:7399";
+    options.UIPort = 8399;
+    options.MetricsPort = 9399;
+});
+```
+
 ## Temporal Cloud
 
 Use `AddTemporalCloud` to reference an externally managed Temporal Cloud namespace.
@@ -105,7 +118,7 @@ temporal.WithVolume("temporal-data", "/home/temporal");
 
 `DevServerOptions` is marked unstable by the Temporal .NET SDK and may change in future SDK versions.
 
-When `UI = false`, the resource does not publish a dashboard URL or `TEMPORAL_UI_ADDRESS`. Development resources expose `/metrics` on the configured metrics port.
+When `UI = false`, the resource does not publish a dashboard URL or `TEMPORAL_UI_ADDRESS`. Development resources expose `/metrics`; container host ports are allocated unless non-default ports are configured explicitly.
 
 ## Run the samples
 

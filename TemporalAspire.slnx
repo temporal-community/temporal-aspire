@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="src/TemporalCommunity.Aspire.Hosting/TemporalCommunity.Aspire.Hosting.csproj" />
   <Project Path="tests/TemporalCommunity.Aspire.Hosting.Tests/TemporalCommunity.Aspire.Hosting.Tests.csproj" />
+  <Project Path="tests/TemporalCommunity.Aspire.Hosting.TestAppHost/TemporalCommunity.Aspire.Hosting.TestAppHost.csproj" />
   <Project Path="samples/SampleAppHost/SampleAppHost.csproj" />
   <Project Path="samples/SampleCloudAppHost/SampleCloudAppHost.csproj" />
   <Project Path="samples/SampleClient/SampleClient.csproj" />

@@ -47,6 +47,20 @@ public static class TemporalContainerResourceExtensions
                 name: TemporalResourceConstants.MetricsEndpointName)
             .WithHealthCheck(healthCheckKey);
 
+        resourceBuilder
+            .WithEndpoint(
+                TemporalResourceConstants.ServiceEndpointName,
+                endpoint => endpoint.Port = GetExplicitHostPort(
+                    resource.Options.Port,
+                    TemporalResourceConstants.DefaultServiceEndpointPort),
+                createIfNotExists: false)
+            .WithEndpoint(
+                TemporalResourceConstants.MetricsEndpointName,
+                endpoint => endpoint.Port = GetExplicitHostPort(
+                    resource.Options.MetricsPort,
+                    TemporalResourceConstants.DefaultMetricsEndpointPort),
+                createIfNotExists: false);
+
         if (resource.Options.UI)
         {
             resourceBuilder = resourceBuilder
@@ -55,6 +69,12 @@ public static class TemporalContainerResourceExtensions
                     port: resource.Options.UIPort,
                     isProxied: false,
                     name: TemporalResourceConstants.UIEndpointName)
+                .WithEndpoint(
+                    TemporalResourceConstants.UIEndpointName,
+                    endpoint => endpoint.Port = GetExplicitHostPort(
+                        resource.Options.UIPort,
+                        TemporalResourceConstants.DefaultUIEndpointPort),
+                    createIfNotExists: false)
                 .WithUrlForEndpoint(TemporalResourceConstants.UIEndpointName, url =>
                 {
                     url.DisplayText = "Dashboard";
@@ -63,6 +83,9 @@ public static class TemporalContainerResourceExtensions
 
         return resourceBuilder;
     }
+
+    private static int? GetExplicitHostPort(int configuredPort, int defaultPort) =>
+        configuredPort == defaultPort ? null : configuredPort;
 
     /// <summary>
     /// Adds a reference from a dependent service to a Temporal container resource,

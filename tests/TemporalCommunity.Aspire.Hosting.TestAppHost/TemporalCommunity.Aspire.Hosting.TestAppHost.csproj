@@ -2,12 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <UserSecretsId>aaeb5a6f-1f37-4a16-bdd7-7eeb78115da5</UserSecretsId>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TemporalCommunity.Aspire.Hosting\TemporalCommunity.Aspire.Hosting.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\SampleClient\SampleClient.csproj" />
-    <ProjectReference Include="..\SampleWorker\SampleWorker.csproj" />
   </ItemGroup>
+
 </Project>

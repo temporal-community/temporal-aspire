@@ -73,12 +73,12 @@ public static class TemporalLocalResourceExtensions
             displayName: "Stop",
             executeCommand: async context =>
             {
-                var notifications = context.ServiceProvider
+                var notifications = context.Services
                     .GetRequiredService<ResourceNotificationService>();
-                var resourceLogger = context.ServiceProvider
+                var resourceLogger = context.Services
                     .GetRequiredService<ResourceLoggerService>()
                     .GetLogger(resource);
-                var eventing = context.ServiceProvider
+                var eventing = context.Services
                     .GetRequiredService<IDistributedApplicationEventing>();
 
                 await notifications.PublishUpdateAsync(resource, s => s with
@@ -97,7 +97,7 @@ public static class TemporalLocalResourceExtensions
                         State = KnownResourceStates.Exited,
                         Properties = []
                     });
-                    var stoppedEvent = new ResourceStoppedEvent(resource, context.ServiceProvider, resourceEvent);
+                    var stoppedEvent = new ResourceStoppedEvent(resource, context.Services, resourceEvent);
                     await eventing.PublishAsync(stoppedEvent, context.CancellationToken);
 
                     await notifications.PublishUpdateAsync(resource, s => s with
@@ -141,12 +141,12 @@ public static class TemporalLocalResourceExtensions
             displayName: "Start",
             executeCommand: async context =>
             {
-                var notifications = context.ServiceProvider
+                var notifications = context.Services
                     .GetRequiredService<ResourceNotificationService>();
-                var resourceLogger = context.ServiceProvider
+                var resourceLogger = context.Services
                     .GetRequiredService<ResourceLoggerService>()
                     .GetLogger(resource);
-                var eventing = context.ServiceProvider
+                var eventing = context.Services
                     .GetRequiredService<IDistributedApplicationEventing>();
 
                 await notifications.PublishUpdateAsync(resource, s => s with
@@ -180,7 +180,7 @@ public static class TemporalLocalResourceExtensions
                     });
 
                     // Publish ResourceReadyEvent to signal that the resource is ready
-                    await eventing.PublishAsync(new ResourceReadyEvent(resource, context.ServiceProvider), context.CancellationToken);
+                    await eventing.PublishAsync(new ResourceReadyEvent(resource, context.Services), context.CancellationToken);
 
                     return CommandResults.Success();
                 }

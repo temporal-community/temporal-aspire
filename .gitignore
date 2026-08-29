@@ -26,6 +26,7 @@ samples/SampleCloudAppHost/.secrets.env
 
 # Coding agent / project-local tooling
 skills-lock.json
+.testagent/
 .clans/
 .claude/
 .agents/
