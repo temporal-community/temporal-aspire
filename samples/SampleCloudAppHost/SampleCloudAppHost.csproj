@@ -1,7 +1,9 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.0">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <AspireCliInvocationMode>Dnx</AspireCliInvocationMode>
     <UserSecretsId>aaeb5a6f-1f37-4a16-bdd7-7eeb78115da5</UserSecretsId>
   </PropertyGroup>
 

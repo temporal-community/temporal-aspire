@@ -24,15 +24,11 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install Aspire CLI
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          dotnet tool install -g Aspire.Cli
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-          aspire --version
-
       - name: Restore tools
         run: dotnet tool restore
+
+      - name: Verify Aspire CLI version
+        run: dotnet tool run aspire -- --version
 
       - name: Restore packages
         run: dotnet restore TemporalAspire.slnx

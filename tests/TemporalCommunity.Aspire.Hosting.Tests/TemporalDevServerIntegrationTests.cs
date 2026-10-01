@@ -10,7 +10,7 @@ using Xunit;
 
 namespace TemporalCommunity.Aspire.Hosting.Tests;
 
-public class TemporalDevServerIntegrationTests
+public partial class TemporalDevServerIntegrationTests
 {
     private const string IntegrationTestEnvironmentVariable = "RUN_TEMPORAL_INTEGRATION_TESTS";
     private static readonly SemaphoreSlim ManifestLock = new(1, 1);
@@ -260,28 +260,39 @@ public class TemporalDevServerIntegrationTests
         MetricsPort = GetAvailablePort()
     };
 
+    private static ProcessStartInfo CreateProcessStartInfo(
+        string fileName, IEnumerable<string> arguments, string? workingDirectory)
+    {
+        var isAspire = fileName == "aspire";
+        var startInfo = new ProcessStartInfo(isAspire ? "dotnet" : fileName)
+        {
+            UseShellExecute = false,
+            WorkingDirectory = workingDirectory ?? FindRepositoryRoot()
+        };
+        if (isAspire)
+        {
+            foreach (var argument in new[] { "tool", "run", "aspire", "--" })
+                startInfo.ArgumentList.Add(argument);
+        }
+        foreach (var argument in arguments)
+            startInfo.ArgumentList.Add(argument);
+        return startInfo;
+    }
+
     private static Process StartProcess(
         string fileName,
         IEnumerable<string> arguments,
         IReadOnlyDictionary<string, string>? environmentVariables = null,
         string? workingDirectory = null)
     {
-        var startInfo = new ProcessStartInfo(fileName)
-        {
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        if (workingDirectory is not null)
-            startInfo.WorkingDirectory = workingDirectory;
+        var startInfo = CreateProcessStartInfo(fileName, arguments, workingDirectory);
+        startInfo.RedirectStandardError = true;
 
         if (environmentVariables is not null)
         {
             foreach (var (key, value) in environmentVariables)
                 startInfo.Environment[key] = value;
         }
-
-        foreach (var argument in arguments)
-            startInfo.ArgumentList.Add(argument);
 
         return Process.Start(startInfo) ?? throw new InvalidOperationException($"Unable to start '{fileName}'.");
     }
@@ -355,17 +366,9 @@ public class TemporalDevServerIntegrationTests
         string? workingDirectory = null,
         bool assertSuccess = true)
     {
-        var startInfo = new ProcessStartInfo(fileName)
-        {
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false
-        };
-        if (workingDirectory is not null)
-            startInfo.WorkingDirectory = workingDirectory;
-
-        foreach (var argument in arguments)
-            startInfo.ArgumentList.Add(argument);
+        var startInfo = CreateProcessStartInfo(fileName, arguments, workingDirectory);
+        startInfo.RedirectStandardError = true;
+        startInfo.RedirectStandardOutput = true;
 
         using var process = Process.Start(startInfo) ??
             throw new InvalidOperationException($"Unable to start '{fileName}'.");
