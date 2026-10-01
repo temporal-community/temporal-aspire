@@ -15,8 +15,9 @@ internal static class TemporalArgsBuilder
     /// </summary>
     /// <param name="options">The resource options containing host, ports, and namespace configuration.</param>
     /// <param name="fixedIpAndPort">If true, uses fixed container defaults; if false, uses options values and emits --ui-port.</param>
+    /// <param name="databaseFilename">An optional filename resolved from an Aspire data volume.</param>
     /// <returns>An array of CLI arguments for the temporal server start-dev command.</returns>
-    internal static string[] BuildArgs(TemporalResourceOptions options, bool fixedIpAndPort = false)
+    internal static string[] BuildArgs(TemporalResourceOptions options, bool fixedIpAndPort = false, string? databaseFilename = null)
     {
         var args = new List<string> { "server", "start-dev" };
 
@@ -54,8 +55,9 @@ internal static class TemporalArgsBuilder
         foreach (var dv in options.DynamicConfigValues)
             args.AddRange(["--dynamic-config-value", dv]);
 
-        if (!string.IsNullOrEmpty(options.DevServerOptions.DatabaseFilename))
-            args.AddRange(["--db-filename", options.DevServerOptions.DatabaseFilename]);
+        databaseFilename ??= options.DevServerOptions.DatabaseFilename;
+        if (!string.IsNullOrEmpty(databaseFilename))
+            args.AddRange(["--db-filename", databaseFilename]);
 
         return args.ToArray();
     }

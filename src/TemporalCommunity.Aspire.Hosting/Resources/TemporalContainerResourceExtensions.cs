@@ -33,7 +33,12 @@ public static class TemporalContainerResourceExtensions
             .WithImage(TemporalResourceConstants.TemporalImage,
                 resource.Options.ImageTag ?? TemporalResourceConstants.DefaultTag)
             .WithImageRegistry("docker.io")
-            .WithArgs(TemporalArgsBuilder.BuildArgs(resource.Options, fixedIpAndPort: true))
+            .WithArgs(context =>
+            {
+                foreach (var argument in TemporalArgsBuilder.BuildArgs(resource.Options, fixedIpAndPort: true,
+                    databaseFilename: TemporalDataVolumeExtensions.GetDatabaseFilename(resource.Options, context)))
+                    context.Args.Add(argument);
+            })
             .ExcludeFromManifest()
             .WithEndpoint(
                 targetPort: TemporalResourceConstants.DefaultServiceEndpointPort,

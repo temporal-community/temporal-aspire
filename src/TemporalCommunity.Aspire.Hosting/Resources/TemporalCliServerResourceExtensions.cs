@@ -66,7 +66,12 @@ public static class TemporalCliServerResourceExtensions
             .AddTemporalHealthCheck(clientAccessor, healthCheckKey);
 
         var resourceBuilder = builder.AddResource(resource)
-            .WithArgs(TemporalArgsBuilder.BuildArgs(resource.Options))
+            .WithArgs(context =>
+            {
+                foreach (var argument in TemporalArgsBuilder.BuildArgs(resource.Options,
+                    databaseFilename: TemporalDataVolumeExtensions.GetDatabaseFilename(resource.Options, context)))
+                    context.Args.Add(argument);
+            })
             .ExcludeFromManifest()
             .WithEndpoint(
                 targetPort: resource.Options.Port,
