@@ -53,7 +53,7 @@ var temporal = builder.AddTemporalCliServer();
 
 `AddTemporalDevContainer` requires Docker. `AddTemporalCliServer` requires the Temporal CLI on `PATH`.
 
-`AddTemporalDevContainer` requires Aspire 13.5.3 or later. By default, Aspire allocates free host ports for the container while Temporal continues to listen inside the container on 7233 (gRPC), 8233 (UI), and 9233 (metrics). `WithReference` resolves the allocated ports automatically, so multiple AppHosts can run side by side without sharing a Temporal server accidentally.
+`AddTemporalDevContainer` requires Aspire 13.6.0 or later. By default, Aspire allocates free host ports for the container while Temporal continues to listen inside the container on 7233 (gRPC), 8233 (UI), and 9233 (metrics). `WithReference` resolves the allocated ports automatically, so multiple AppHosts can run side by side without sharing a Temporal server accidentally.
 
 To request fixed host ports, configure non-default values explicitly:
 
@@ -64,6 +64,27 @@ var temporal = builder.AddTemporalDevContainer("temporal", options =>
     options.UIPort = 8399;
     options.MetricsPort = 9399;
 });
+```
+
+## Dashboard terminal
+
+Add `.WithCliTerminal()` to any local server mode to show **Open Temporal CLI** in the Aspire Dashboard:
+
+```csharp
+var temporal = builder.AddTemporalDevContainer("temporal")
+    .WithCliTerminal();
+```
+
+The same extension works with `AddTemporalCliServer` and `AddTemporalLocalDevServer`. It opens an interactive shell with `TEMPORAL_ADDRESS` and `TEMPORAL_NAMESPACE` configured for the running server. Run commands such as `temporal workflow list` directly in that shell. The command is enabled only while the server is running and healthy.
+
+Container terminals use the CLI bundled in the image through Aspire's selected Docker or Podman runtime; no host Temporal CLI installation is needed. CLI and SDK-managed local terminals use a host shell and require the [Temporal CLI](https://docs.temporal.io/cli/setup-cli) on `PATH`. Temporal Cloud resources do not expose this terminal command.
+
+The AppHost must enable the Aspire CLI bundle, which supplies Dashboard terminal support:
+
+```xml
+<PropertyGroup>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+</PropertyGroup>
 ```
 
 ## Temporal Cloud
@@ -105,16 +126,17 @@ var temporal = builder.AddTemporalLocalDevServer("temporal", options =>
 });
 ```
 
-For the container-based resource, use a container path and mount a volume:
+For CLI and container servers, use `.WithDataVolume(name)`:
 
 ```csharp
-var temporal = builder.AddTemporalDevContainer("temporal", options =>
-{
-    options.DevServerOptions.DatabaseFilename = "/home/temporal/temporal.db";
-});
-
-temporal.WithVolume("temporal-data", "/home/temporal");
+var temporal = builder.AddTemporalDevContainer("temporal")
+    .WithDataVolume("temporal-data")
+    .WithCliTerminal();
 ```
+
+The same persistence extension works with `AddTemporalCliServer`. Aspire resolves a directory scoped to the CLI resource and storage name beneath its local store; a container uses `/home/temporal` in the named volume. Temporal writes `temporal.db` into that directory. Keep the AppHost location, resource name, and storage name stable to reuse the data. The CLI store is normally under the AppHost's `obj/.aspire` directory, so removing `obj` also removes that data.
+
+Choose either `.WithDataVolume()` or an explicit `DevServerOptions.DatabaseFilename`; configuring both is rejected. Existing explicit filenames and container mounts continue to work. CLI directories and container volumes are separate storage: switching modes does not migrate a database automatically. SDK-managed local persistence continues to use the filename shown above.
 
 `DevServerOptions` is marked unstable by the Temporal .NET SDK and may change in future SDK versions.
 
@@ -122,13 +144,19 @@ When `UI = false`, the resource does not publish a dashboard URL or `TEMPORAL_UI
 
 ## Run the samples
 
-Both samples use the same worker, client, and workflow projects.
+Both samples use the same worker, client, and workflow projects. Restore the repository's pinned Aspire CLI first:
+
+```bash
+dotnet tool restore
+```
+
+Both AppHosts enable the CLI bundle and use `AspireCliInvocationMode=Dnx`, so SDK-driven launches also honor the local CLI pin.
 
 Local development server:
 
 ```bash
 cd samples/SampleAppHost
-aspire start
+dotnet tool run aspire -- start
 ```
 
 Temporal Cloud:
@@ -140,7 +168,7 @@ cp .secrets.env.example .secrets.env
 # Add your Temporal Cloud values to .secrets.env.
 
 source .secrets.env
-aspire start
+dotnet tool run aspire -- start
 ```
 
 See the [samples README](samples/README.md) for details.

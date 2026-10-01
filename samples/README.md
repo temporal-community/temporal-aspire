@@ -1,19 +1,19 @@
 # Hosting sample
 
-This folder contains samples for the projects in this repository.
+This folder contains samples for the projects in this repository. From the repository root, run `dotnet tool restore` to restore the pinned Aspire CLI. Both AppHosts enable `AspireUseCliBundle=true` and `AspireCliInvocationMode=Dnx`.
 
 ## Local development server sample
 
 `SampleAppHost` shows how to use `TemporalCommunity.Aspire.Hosting` from an Aspire AppHost. It starts a local Temporal development server, injects Temporal connection environment variables into a worker and client, and runs a simple workflow.
 
-The local dev server configures Temporal's `DevServerOptions.DatabaseFilename` to use `samples/.temporal/temporal.db` for persisted state.
+The local dev server configures Temporal's `DevServerOptions.DatabaseFilename` to use `samples/.temporal/temporal.db` for persisted state. **Open Temporal CLI** in the Dashboard opens a host shell configured for that server; install the Temporal CLI on `PATH` to use it.
 
 The worker and client both load connection settings with `ClientEnvConfig.LoadClientConnectOptions()`, so the same consumer pattern works with `AddTemporalCloud` and `TEMPORAL_API_KEY`.
 
 For production, keep the AppHost pointed at an externally managed Temporal endpoint such as Temporal Cloud. Run at least two workers per task queue, tune task slots, sticky cache, and pollers from load tests, use Worker Versioning for workflow-code rollouts, and configure graceful shutdown. Monitor CPU/memory, Schedule-to-Start latency, available task slots, and request failures/latency together. Use KEDA or Temporal Worker Controller scale-to-zero only when the workload can tolerate worker cold-start latency.
 
 ```bash
-aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interactive
+dotnet tool run aspire -- start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interactive
 ```
 
 ## Temporal Cloud sample
@@ -22,7 +22,7 @@ aspire start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interact
 
 The sample enables the optional Cloud health check so the dashboard verifies an authenticated `GetSystemInfo` call before starting the worker and client. It verifies endpoint reachability, TLS, and credentials—not task-queue polling or worker capacity. Unless a referenced resource already has an explicit trust scope, the hosting integration automatically configures Aspire's system certificate trust scope during local run mode; the sample projects do not need certificate-specific configuration.
 
-Copy the included template to a gitignored `.secrets.env` file, replace the placeholder values, and source it before starting the sample. `SampleCloudAppHost/aspire.config.json` selects the Cloud AppHost when `aspire start` is run from that folder; it does not fall back to the local `SampleAppHost` configured in the parent directory.
+Copy the included template to a gitignored `.secrets.env` file, replace the placeholder values, and source it before starting the sample. `SampleCloudAppHost/aspire.config.json` selects the Cloud AppHost when `dotnet tool run aspire -- start` is run from that folder; it does not fall back to the local `SampleAppHost` configured in the parent directory.
 
 ```bash
 cd samples/SampleCloudAppHost/
@@ -32,7 +32,7 @@ cp .secrets.env.example .secrets.env
 
 source .secrets.env
 
-aspire start --non-interactive
+dotnet tool run aspire -- start --non-interactive
 ```
 
 `temporal-api-key` remains a secret Aspire parameter even when its local value is sourced from the environment. The address, namespace, and UI address are ordinary external configuration; the UI URL should not be put in a deployment secret store. Do not commit API keys. If your deployment uses a payload codec, add `Parameters__temporal_codec_auth` to `.secrets.env`, declare a matching secret parameter, and pass it as the sixth argument to `AddTemporalCloud`.
