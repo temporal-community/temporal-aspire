@@ -1,38 +1,59 @@
-# Hosting sample
+# Running the samples
 
-This folder contains samples for the projects in this repository. From the repository root, run `dotnet tool restore` to restore the pinned Aspire CLI. Both AppHosts enable `AspireUseCliBundle=true` and `AspireCliInvocationMode=Dnx`.
+Both samples start a worker and a client that runs a simple Temporal workflow.
 
-## Local development server sample
+## Setup
 
-`SampleAppHost` shows how to use `TemporalCommunity.Aspire.Hosting` from an Aspire AppHost. It starts a local Temporal development server, injects Temporal connection environment variables into a worker and client, and runs a simple workflow.
+Install the .NET 10 SDK, then restore the pinned Aspire CLI from the repository root:
 
-The local dev server configures Temporal's `DevServerOptions.DatabaseFilename` to use `samples/.temporal/temporal.db` for persisted state. **Open Temporal CLI** in the Dashboard opens a host shell configured for that server; install the Temporal CLI on `PATH` to use it.
+```bash
+dotnet tool restore
+```
 
-The worker and client both load connection settings with `ClientEnvConfig.LoadClientConnectOptions()`, so the same consumer pattern works with `AddTemporalCloud` and `TEMPORAL_API_KEY`.
+## Local development server
 
-For production, keep the AppHost pointed at an externally managed Temporal endpoint such as Temporal Cloud. Run at least two workers per task queue, tune task slots, sticky cache, and pollers from load tests, use Worker Versioning for workflow-code rollouts, and configure graceful shutdown. Monitor CPU/memory, Schedule-to-Start latency, available task slots, and request failures/latency together. Use KEDA or Temporal Worker Controller scale-to-zero only when the workload can tolerate worker cold-start latency.
+From the repository root:
 
 ```bash
 dotnet tool run aspire -- start --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interactive
 ```
 
-## Temporal Cloud sample
+This sample starts a local Temporal server and stores its database in `samples/.temporal/temporal.db`. The Dashboard's **Open Temporal CLI** action opens a shell for that server; it requires the Temporal CLI on `PATH`.
 
-`SampleCloudAppHost` connects the same worker and client projects to a Temporal Cloud namespace. It declares the Temporal endpoint, namespace, API key, and Cloud UI address as Aspire parameters. The API key is secret; the UI address is deliberately not, because Aspire uses it to display a **Temporal Dashboard** link in the dashboard and injects it as `TEMPORAL_UI_ADDRESS` into referenced projects.
+## Temporal Cloud
 
-The sample enables the optional Cloud health check so the dashboard verifies an authenticated `GetSystemInfo` call before starting the worker and client. It verifies endpoint reachability, TLS, and credentials—not task-queue polling or worker capacity. Unless a referenced resource already has an explicit trust scope, the hosting integration automatically configures Aspire's system certificate trust scope during local run mode; the sample projects do not need certificate-specific configuration.
-
-Copy the included template to a gitignored `.secrets.env` file, replace the placeholder values, and source it before starting the sample. `SampleCloudAppHost/aspire.config.json` selects the Cloud AppHost when `dotnet tool run aspire -- start` is run from that folder; it does not fall back to the local `SampleAppHost` configured in the parent directory.
+From the repository root, copy the configuration template:
 
 ```bash
 cd samples/SampleCloudAppHost/
 cp .secrets.env.example .secrets.env
+```
 
-# Edit .secrets.env with your Temporal Cloud values.
+Edit `.secrets.env` with your Cloud address, namespace, API key, and UI URL. The file is ignored by Git. Then run from that folder:
 
+```bash
 source .secrets.env
-
 dotnet tool run aspire -- start --non-interactive
 ```
 
-`temporal-api-key` remains a secret Aspire parameter even when its local value is sourced from the environment. The address, namespace, and UI address are ordinary external configuration; the UI URL should not be put in a deployment secret store. Do not commit API keys. If your deployment uses a payload codec, add `Parameters__temporal_codec_auth` to `.secrets.env`, declare a matching secret parameter, and pass it as the sixth argument to `AddTemporalCloud`.
+The worker and client start after the Cloud connection health check succeeds.
+
+## Check the result and stop
+
+Open the Dashboard URL printed by Aspire. In **sample-client** console logs, expect:
+
+```text
+Hello, Aspire, from Temporal!
+```
+
+Stop the local sample from the repository root:
+
+```bash
+dotnet tool run aspire -- stop --apphost samples/SampleAppHost/SampleAppHost.csproj --non-interactive
+```
+
+Or stop the Cloud sample from `samples/SampleCloudAppHost/`:
+
+```bash
+dotnet tool run aspire -- stop --non-interactive
+```
