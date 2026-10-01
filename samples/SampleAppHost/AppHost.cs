@@ -8,7 +8,7 @@ Directory.CreateDirectory(temporalDataDirectory);
 var temporal = builder.AddTemporalLocalDevServer("temporal", options =>
 {
     options.DevServerOptions.DatabaseFilename = Path.Combine(temporalDataDirectory, "temporal.db");
-});
+}).WithCliTerminal();
 
 builder.AddProject<Projects.SampleWorker>("sample-worker")
     .WaitFor(temporal)

@@ -23,7 +23,7 @@ internal static class TemporalCliLocator
             throw new InvalidOperationException(
                 "The 'temporal' CLI executable was not found on PATH. " +
                 "Install it from https://docs.temporal.io/cli and ensure " +
-                "'temporal' is accessible on your PATH before using AddTemporalCliServer.");
+                "'temporal' is accessible on your PATH before starting a CLI server or opening a host CLI terminal.");
         }
     }
 

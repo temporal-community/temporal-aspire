@@ -2,7 +2,7 @@ using TemporalCommunity.Aspire.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var temporal = builder.AddTemporalDevContainer("temporal");
+var temporal = builder.AddTemporalDevContainer("temporal").WithCliTerminal();
 
 var dependent = builder.AddExecutable(
     "dependent",
