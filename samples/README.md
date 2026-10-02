@@ -36,7 +36,7 @@ source .secrets.env
 aspire start
 ```
 
-The worker and client start after the Cloud connection health check succeeds.
+The worker and client start after the Cloud connection health check succeeds. **Open Temporal CLI** opens a local shell configured with the Cloud address, namespace, API key, and TLS; it requires the Temporal CLI on `PATH`.
 
 We recommend the [Temporal Cloud CLI extension](https://github.com/temporalio/cloud-cli) for inspecting and managing Cloud namespaces. After sourcing `.secrets.env`, use the sample's API key to check your identity and namespace:
 

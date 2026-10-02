@@ -13,7 +13,8 @@ var temporal = builder.AddTemporalCloud(
     temporalNamespace,
     temporalApiKey,
     temporalUiAddress,
-    configure: options => options.EnableHealthCheck = true);
+    configure: options => options.EnableHealthCheck = true)
+    .WithCliTerminal();
 
 builder.AddProject<Projects.SampleWorker>("sample-worker")
     .WaitFor(temporal)

@@ -68,16 +68,16 @@ var temporal = builder.AddTemporalDevContainer("temporal", options =>
 
 ## Dashboard terminal
 
-Add `.WithCliTerminal()` to any local server mode to show **Open Temporal CLI** in the Aspire Dashboard:
+Add `.WithCliTerminal()` to a Temporal resource to show **Open Temporal CLI** in the Aspire Dashboard during local AppHost runs:
 
 ```csharp
 var temporal = builder.AddTemporalDevContainer("temporal")
     .WithCliTerminal();
 ```
 
-The same extension works with `AddTemporalCliServer` and `AddTemporalLocalDevServer`. It opens an interactive shell with `TEMPORAL_ADDRESS` and `TEMPORAL_NAMESPACE` configured for the running server. Run commands such as `temporal workflow list` directly in that shell. The command is enabled only while the server is running and healthy.
+The same extension works with `AddTemporalCliServer`, `AddTemporalLocalDevServer`, and `AddTemporalCloud`. It opens an interactive shell with `TEMPORAL_ADDRESS` and `TEMPORAL_NAMESPACE` configured for the running server. Run commands such as `temporal workflow list` directly in that shell. The command is enabled only while the server is running and healthy.
 
-Container terminals use the CLI bundled in the image through Aspire's selected Docker or Podman runtime; no host Temporal CLI installation is needed. CLI and SDK-managed local terminals use a host shell and require the [Temporal CLI](https://docs.temporal.io/cli/setup-cli) on `PATH`. Temporal Cloud resources do not expose this terminal command.
+Container terminals use the CLI bundled in the image through Aspire's selected Docker or Podman runtime; no host Temporal CLI installation is needed. CLI, SDK-managed, and Cloud terminals use a host shell and require the [Temporal CLI](https://docs.temporal.io/cli/setup-cli) on `PATH`. Cloud terminals require the resource's API key and use its address and namespace with TLS enabled. The action is omitted when publishing or deploying the AppHost.
 
 The AppHost must enable the Aspire CLI bundle, which supplies Dashboard terminal support:
 
