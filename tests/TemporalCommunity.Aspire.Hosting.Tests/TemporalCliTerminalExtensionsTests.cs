@@ -23,7 +23,8 @@ public class TemporalCliTerminalExtensionsTests
     [InlineData("local")]
     [InlineData("cli")]
     [InlineData("container")]
-    public void WithCliTerminal_RegistersCommandForEachLocalMode(string mode)
+    [InlineData("cloud")]
+    public void WithCliTerminal_RegistersCommandForEachResourceType(string mode)
     {
         var resource = Register(DistributedApplication.CreateBuilder([]), mode);
 
@@ -37,6 +38,7 @@ public class TemporalCliTerminalExtensionsTests
     [InlineData("local")]
     [InlineData("cli")]
     [InlineData("container")]
+    [InlineData("cloud")]
     public void WithCliTerminal_DoesNotRegisterCommandWhenPublishing(string mode)
     {
         var resource = Register(DistributedApplication.CreateBuilder(["--publisher", "manifest"]), mode);
@@ -49,6 +51,8 @@ public class TemporalCliTerminalExtensionsTests
     [InlineData("local", "Running", null, ResourceCommandState.Enabled)]
     [InlineData("cli", "Running", null, ResourceCommandState.Enabled)]
     [InlineData("container", "Running", "current-id", ResourceCommandState.Enabled)]
+    [InlineData("cloud", "Running", null, ResourceCommandState.Enabled)]
+    [InlineData("cloud", "Exited", null, ResourceCommandState.Disabled)]
     [InlineData("container", "Running", null, ResourceCommandState.Disabled)]
     [InlineData("local", "Exited", null, ResourceCommandState.Disabled)]
     [InlineData("cli", "Exited", null, ResourceCommandState.Disabled)]
@@ -81,6 +85,7 @@ public class TemporalCliTerminalExtensionsTests
     [InlineData("local")]
     [InlineData("cli")]
     [InlineData("container")]
+    [InlineData("cloud")]
     public void WithCliTerminal_WaitsForHealthyServerAndTracksHealthChanges(string mode)
     {
         var resource = Register(DistributedApplication.CreateBuilder([]), mode);
@@ -109,6 +114,7 @@ public class TemporalCliTerminalExtensionsTests
     [InlineData("local", "Exited")]
     [InlineData("cli", "Exited")]
     [InlineData("container", "Exited")]
+    [InlineData("cloud", "Exited")]
     [InlineData("container", "Running")]
     public async Task WithCliTerminal_RechecksCurrentStateBeforeLaunching(string mode, string currentState)
     {
@@ -152,6 +158,7 @@ public class TemporalCliTerminalExtensionsTests
     [InlineData("local")]
     [InlineData("cli")]
     [InlineData("container")]
+    [InlineData("cloud")]
     public async Task WithCliTerminal_RechecksHealthBeforeLaunching(string mode)
     {
         var builder = DistributedApplication.CreateBuilder([]);
@@ -207,6 +214,73 @@ public class TemporalCliTerminalExtensionsTests
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task CloudTerminal_UsesResourceCredentialsWithTlsAndNoSecretsInArguments(bool windows, bool parameterized)
+    {
+        const string apiKey = "test-key-$value;with-spaces only-for-tests";
+        var builder = DistributedApplication.CreateBuilder([]);
+        var resource = parameterized
+            ? builder.AddTemporalCloud("orders", builder.AddParameter("address", "orders.prod.tmprl.cloud:7233"),
+                builder.AddParameter("namespace", "orders.prod"), builder.AddParameter("api-key", apiKey, secret: true)).Resource
+            : builder.AddTemporalCloud("orders", "orders.prod.tmprl.cloud:7233", "orders.prod",
+                options => options.ApiKey = apiKey).Resource;
+
+        var options = await TemporalCliTerminalExtensions.CreateCloudOptionsAsync(resource, windows, CancellationToken.None);
+
+        Assert.Equal(windows ? "powershell.exe" : "/bin/sh", options.Executable);
+        Assert.Equal(windows ? WindowsShellArguments : UnixShellArguments, options.Arguments);
+        Assert.Equal(TerminalPlacement.Dock, options.Placement);
+        Assert.Equal("orders.prod.tmprl.cloud:7233", options.EnvironmentVariables["TEMPORAL_ADDRESS"]);
+        Assert.Equal("orders.prod", options.EnvironmentVariables["TEMPORAL_NAMESPACE"]);
+        Assert.Equal("true", options.EnvironmentVariables["TEMPORAL_TLS"]);
+        Assert.Equal(apiKey, options.EnvironmentVariables["TEMPORAL_API_KEY"]);
+        Assert.DoesNotContain(apiKey, string.Join(" ", options.Arguments), StringComparison.Ordinal);
+        Assert.DoesNotContain(apiKey, options.Title, StringComparison.Ordinal);
+
+        // Resolve current options for each new terminal, rather than caching credentials at registration.
+        resource.Options.ApiKey = "replacement-test-key";
+        var next = await TemporalCliTerminalExtensions.CreateCloudOptionsAsync(resource, windows, CancellationToken.None);
+        Assert.Equal("replacement-test-key", next.EnvironmentVariables["TEMPORAL_API_KEY"]);
+        Assert.Equal(apiKey, options.EnvironmentVariables["TEMPORAL_API_KEY"]);
+    }
+
+    [Theory]
+    [InlineData("", "orders.prod", "test-key", "address")]
+    [InlineData("orders.prod.tmprl.cloud:7233", " ", "test-key", "namespace")]
+    [InlineData("orders.prod.tmprl.cloud:7233", "orders.prod", null, "API key")]
+    public async Task CloudTerminal_RejectsMissingConnectionSettings(
+        string address, string temporalNamespace, string? apiKey, string missing)
+    {
+        var resource = DistributedApplication.CreateBuilder([])
+            .AddTemporalCloud("orders", address, temporalNamespace, options => options.ApiKey = apiKey).Resource;
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TemporalCliTerminalExtensions.CreateCloudOptionsAsync(resource, false, CancellationToken.None));
+
+        Assert.Equal($"The Temporal Cloud {missing} is required to open a CLI terminal.", error.Message);
+    }
+
+    [Fact]
+    public void CloudTerminal_WithoutHealthCheckIsEnabledForRunningResource()
+    {
+        var resource = DistributedApplication.CreateBuilder([])
+            .AddTemporalCloud("orders", "orders.prod.tmprl.cloud:7233", "orders.prod", options => options.ApiKey = "test-key")
+            .WithCliTerminal().Resource;
+        var snapshot = Assert.Single(resource.Annotations.OfType<ResourceSnapshotAnnotation>()).InitialSnapshot;
+        var command = Assert.Single(resource.Annotations.OfType<ResourceCommandAnnotation>());
+        using var services = new ServiceCollection().BuildServiceProvider();
+
+        Assert.Equal(ResourceCommandState.Enabled, command.UpdateState(new UpdateCommandStateContext
+        {
+            Services = services,
+            ResourceSnapshot = snapshot
+        }));
+    }
+
+    [Theory]
     [InlineData("docker")]
     [InlineData("podman")]
     public void ContainerTerminal_UsesRuntimeExecAndInternalAddress(string runtime)
@@ -226,6 +300,8 @@ public class TemporalCliTerminalExtensionsTests
         "local" => builder.AddTemporalLocalDevServer("temporal").WithCliTerminal().Resource,
         "cli" => builder.AddTemporalCliServer("temporal", null, () => true).WithCliTerminal().Resource,
         "container" => builder.AddTemporalDevContainer("temporal").WithCliTerminal().Resource,
+        "cloud" => builder.AddTemporalCloud("temporal", builder.AddParameter("address"),
+            builder.AddParameter("namespace"), builder.AddParameter("api-key", secret: true)).WithCliTerminal().Resource,
         _ => throw new ArgumentOutOfRangeException(nameof(mode))
     };
 }

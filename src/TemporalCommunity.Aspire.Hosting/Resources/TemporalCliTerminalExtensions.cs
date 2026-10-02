@@ -64,6 +64,46 @@ public static class TemporalCliTerminalExtensions
         });
     }
 
+    /// <summary>Adds a Dashboard terminal using the host Temporal CLI and Cloud API-key authentication during local AppHost runs.</summary>
+    /// <param name="builder">The Temporal Cloud namespace.</param>
+    /// <returns>The resource builder.</returns>
+    public static IResourceBuilder<TemporalCloudResource> WithCliTerminal(
+        this IResourceBuilder<TemporalCloudResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return WithCliTerminalCore(builder, (context, _) =>
+        {
+            TemporalCliLocator.EnsureAvailable();
+            return CreateCloudOptionsAsync(builder.Resource, OperatingSystem.IsWindows(), context.CancellationToken);
+        });
+    }
+
+    internal static async Task<TerminalLaunchOptions> CreateCloudOptionsAsync(
+        TemporalCloudResource resource, bool isWindows, CancellationToken cancellationToken)
+    {
+        var address = await ResolveCloudValueAsync(resource.ConnectionStringExpression, "address", cancellationToken);
+        var temporalNamespace = await ResolveCloudValueAsync(resource.Options.Namespace, "namespace", cancellationToken);
+        var apiKey = await ResolveCloudValueAsync(resource.Options.ApiKey, "API key", cancellationToken);
+        var options = CreateHostOptions(resource.Name, address, temporalNamespace, isWindows);
+        options.EnvironmentVariables["TEMPORAL_TLS"] = "true";
+        options.EnvironmentVariables["TEMPORAL_API_KEY"] = apiKey;
+        return options;
+    }
+
+    private static async ValueTask<string> ResolveCloudValueAsync(
+        object? value, string name, CancellationToken cancellationToken)
+    {
+        var resolved = value switch
+        {
+            string text => text,
+            IValueProvider provider => await provider.GetValueAsync(cancellationToken),
+            _ => null
+        };
+        return !string.IsNullOrWhiteSpace(resolved)
+            ? resolved
+            : throw new InvalidOperationException($"The Temporal Cloud {name} is required to open a CLI terminal.");
+    }
+
     internal static TerminalLaunchOptions CreateHostOptions(
         string resourceName, string address, string temporalNamespace, bool isWindows)
     {
@@ -142,7 +182,7 @@ public static class TemporalCliTerminalExtensions
             }
         }, commandOptions: new CommandOptions
         {
-            Description = "Open a shell configured to run Temporal CLI commands against this local server.",
+            Description = "Open a local shell configured to run Temporal CLI commands against this resource.",
             IconName = "WindowConsole",
             UpdateState = context => CanOpen(builder.Resource, context.ResourceSnapshot)
                 ? ResourceCommandState.Enabled
