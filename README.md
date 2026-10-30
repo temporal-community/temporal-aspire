@@ -137,7 +137,7 @@ For these modes, choose either `.WithDataVolume()` or `DevServerOptions.Database
 
 The SDK-managed server (`AddTemporalLocalDevServer`) does not support `.WithDataVolume()`. It uses an in-memory database by default; persistence requires an explicit `DevServerOptions.DatabaseFilename` and an existing parent directory.
 
-`DevServerOptions` is marked unstable by the Temporal .NET SDK and may change in future SDK versions.
+The SDK's [`DevServerOptions`](https://github.com/temporalio/sdk-dotnet/blob/main/src/Temporalio/Testing/DevServerOptions.cs) are specific to the Temporal CLI development server implementation and may no longer be valid if that implementation changes.
 
 When `UI = false`, the resource does not publish a dashboard URL or `TEMPORAL_UI_ADDRESS`. Development resources expose `/metrics`; container host ports are allocated unless non-default ports are configured explicitly.
 

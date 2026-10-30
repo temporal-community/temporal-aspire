@@ -25,9 +25,12 @@ samples/.temporal/
 samples/SampleCloudAppHost/.secrets.env
 
 # Coding agent / project-local tooling
+.github/skills
 skills-lock.json
 .testagent/
 .clans/
 .claude/
 .agents/
 .mcp.json
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
