@@ -81,13 +81,7 @@ The same extension works with `AddTemporalCliServer`, `AddTemporalLocalDevServer
 
 Container terminals use the CLI bundled in the image through Aspire's selected Docker or Podman runtime; no host Temporal CLI installation is needed. CLI, SDK-managed, and Cloud terminals use a host shell and require the [Temporal CLI](https://docs.temporal.io/cli/setup-cli) on `PATH`. Cloud terminals use the resource's API key, address, and namespace with TLS enabled. Anyone who can open the Dashboard terminal can run authenticated CLI commands against that namespace, so enable it only for trusted Dashboard users. The action is omitted when publishing or deploying the AppHost.
 
-The AppHost must enable the Aspire CLI bundle, which supplies Dashboard terminal support:
-
-```xml
-<PropertyGroup>
-    <AspireUseCliBundle>true</AspireUseCliBundle>
-</PropertyGroup>
-```
+The Aspire CLI bundle supplies Dashboard terminal support and is enabled by default for C# AppHosts in Aspire 17.
 
 ## Temporal Cloud
 
