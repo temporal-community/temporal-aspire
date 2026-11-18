@@ -4,7 +4,7 @@ Both samples start a worker and a client that runs a simple Temporal workflow.
 
 ## Setup
 
-Install the .NET 10 SDK, then restore the pinned Aspire CLI from the repository root:
+Install the .NET 11 SDK, then restore the pinned Aspire CLI from the repository root:
 
 ```bash
 dotnet tool restore
@@ -18,7 +18,7 @@ From `samples/`:
 dotnet tool run aspire -- start --apphost SampleAppHost/SampleAppHost.csproj
 ```
 
-This sample starts a Temporal CLI server and persists its database with `.WithDataVolume("temporal-data")` in an Aspire-managed host directory. It requires the Temporal CLI on `PATH`; the Dashboard's **Open Temporal CLI** action uses that same CLI to open a shell for the server. Removing the AppHost's `obj` directory also removes the CLI server's persisted data.
+This sample starts a Temporal CLI server and persists its database with `.WithDataVolume("temporal-data")` in an Aspire-managed host directory. It requires the Temporal CLI on `PATH`; the Dashboard's **Temporal Terminal** action uses that same CLI to open a shell for the server. Removing the AppHost's `obj` directory also removes the CLI server's persisted data.
 
 ## Temporal Cloud
 
@@ -36,7 +36,7 @@ source .secrets.env
 dotnet tool run aspire -- start
 ```
 
-The worker and client start after the Cloud connection health check succeeds. **Open Temporal CLI** opens a local shell configured with the Cloud address, namespace, API key, and TLS; it requires the Temporal CLI on `PATH`.
+The worker and client start after the Cloud connection health check succeeds. **Temporal Terminal** opens a local shell configured with the Cloud address, namespace, API key, and TLS; it requires the Temporal CLI on `PATH`.
 
 We recommend the [Temporal Cloud CLI extension](https://github.com/temporalio/cloud-cli) for inspecting and managing Cloud namespaces. After sourcing `.secrets.env`, use the sample's API key to check your identity and namespace:
 

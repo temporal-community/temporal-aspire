@@ -155,7 +155,7 @@ public static class TemporalCliTerminalExtensions
         if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
             return builder;
 
-        return builder.WithCommand(CommandName, "Open Temporal CLI", async context =>
+        return builder.WithCommand(CommandName, "Temporal Terminal", async context =>
         {
             var notifications = context.Services.GetRequiredService<ResourceNotificationService>();
             if (!notifications.TryGetCurrentState(context.ResourceName, out var resourceEvent) ||

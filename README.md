@@ -13,7 +13,7 @@
 
 ## Install
 
-Requires .NET Aspire 13.6.1 or later.
+Requires .NET Aspire 17.0 or later and .NET 10 or 11. The examples using `AddDotnetProject` also require the `Aspire.Hosting.Dotnet` package in the AppHost.
 
 ```bash
 dotnet add package TemporalCommunity.Aspire.Hosting
@@ -30,7 +30,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var temporal = builder.AddTemporalLocalDevServer("temporal");
 
-builder.AddProject<Projects.Worker>("worker")
+builder.AddDotnetProject("worker", "../Worker/Worker.csproj")
     .WaitFor(temporal)
     .WithReference(temporal);
 
@@ -70,7 +70,7 @@ var temporal = builder.AddTemporalDevContainer("temporal", options =>
 
 ## Dashboard terminal
 
-Add `.WithCliTerminal()` to a Temporal resource to show **Open Temporal CLI** in the Aspire Dashboard during local AppHost runs:
+Add `.WithCliTerminal()` to a Temporal resource to show **Temporal Terminal** in the Aspire Dashboard during local AppHost runs:
 
 ```csharp
 var temporal = builder.AddTemporalDevContainer("temporal")
@@ -107,7 +107,7 @@ var temporal = builder.AddTemporalCloud(
     temporalUiAddress,
     configure: options => options.EnableHealthCheck = true);
 
-builder.AddProject<Projects.Worker>("worker")
+builder.AddDotnetProject("worker", "../Worker/Worker.csproj")
     .WithReference(temporal);
 ```
 

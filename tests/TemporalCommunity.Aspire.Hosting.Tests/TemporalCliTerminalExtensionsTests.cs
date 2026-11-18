@@ -30,7 +30,7 @@ public class TemporalCliTerminalExtensionsTests
 
         var command = Assert.Single(resource.Annotations.OfType<ResourceCommandAnnotation>(),
             annotation => annotation.Name == TemporalCliTerminalExtensions.CommandName);
-        Assert.Equal("Open Temporal CLI", command.DisplayName);
+        Assert.Equal("Temporal Terminal", command.DisplayName);
         Assert.Equal("WindowConsole", command.IconName);
     }
 
