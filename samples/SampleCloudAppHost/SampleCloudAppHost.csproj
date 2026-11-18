@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.6.4">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,8 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TemporalCommunity.Aspire.Hosting\TemporalCommunity.Aspire.Hosting.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\SampleClient\SampleClient.csproj" />
-    <ProjectReference Include="..\SampleWorker\SampleWorker.csproj" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="17.0.0" />
+    <PackageReference Include="Aspire.Hosting.Dotnet" Version="17.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TemporalCommunity.Aspire.Hosting\TemporalCommunity.Aspire.Hosting.csproj" />
   </ItemGroup>
 </Project>

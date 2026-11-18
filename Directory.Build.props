@@ -5,7 +5,7 @@
     <RepositoryUrl>https://github.com/temporal-community/temporal-aspire</RepositoryUrl>
     <PackageProjectUrl>https://github.com/temporal-community/temporal-aspire</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>

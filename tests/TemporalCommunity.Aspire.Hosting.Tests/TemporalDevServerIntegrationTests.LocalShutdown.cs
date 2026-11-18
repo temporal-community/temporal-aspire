@@ -29,7 +29,7 @@ public partial class TemporalDevServerIntegrationTests
                 StringComparison.Ordinal);
             // Directory.Build.props normally supplies these from the repository.
             project = project.Replace("<OutputType>Exe</OutputType>",
-                "<OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>",
+                "<OutputType>Exe</OutputType><TargetFramework>net11.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>",
                 StringComparison.Ordinal);
             await File.WriteAllTextAsync(Path.Combine(directory, projectName), project).ConfigureAwait(true);
             File.Copy(Path.Combine(sourceDirectory, "AppHost.cs"), Path.Combine(directory, "AppHost.cs"));
@@ -84,7 +84,7 @@ public partial class TemporalDevServerIntegrationTests
             FindRepositoryRoot(), "tests", "TemporalCommunity.Aspire.Hosting.TestAppHost");
         var startInfo = CreateProcessStartInfo(
             "dotnet",
-            [Path.Combine(projectDirectory, "bin", "Release", "net10.0", "TemporalCommunity.Aspire.Hosting.TestAppHost.dll"),
+            [Path.Combine(projectDirectory, "bin", "Release", "net11.0", "TemporalCommunity.Aspire.Hosting.TestAppHost.dll"),
                 "--TemporalMode=local", $"--TemporalPort={port}", $"--TemporalMetricsPort={GetAvailablePort()}"],
             projectDirectory);
         startInfo.Environment["ASPIRE_DASHBOARD_DISABLED"] = "true";

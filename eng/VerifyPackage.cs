@@ -8,10 +8,10 @@ using System.Xml.Linq;
 const string ExpectedPackageId = "TemporalCommunity.Aspire.Hosting";
 const string ExpectedRepositoryUrl = "https://github.com/temporal-community/temporal-aspire";
 const string ExpectedSourcePrefix = "https://raw.githubusercontent.com/temporal-community/temporal-aspire/";
-const string ExpectedAspireVersion = "13.6.4";
-const string ExpectedHostingVersion = "10.0.14";
+const string ExpectedAspireVersion = "17.0.0";
+const string ExpectedHostingVersion = "11.0.0";
 var sourceLinkKind = new Guid("CC110556-A091-4D38-9FEC-25AB9A351A6A");
-var frameworks = new[] { "net10.0", "net9.0", "net8.0" };
+var frameworks = new[] { "net11.0", "net10.0" };
 
 if (args.Length != 3)
 {

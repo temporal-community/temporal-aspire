@@ -6,11 +6,11 @@ var temporal = builder.AddTemporalCliServer("temporal")
     .WithDataVolume("temporal-data")
     .WithCliTerminal();
 
-builder.AddProject<Projects.SampleWorker>("sample-worker")
+builder.AddDotnetProject("sample-worker", "../SampleWorker/SampleWorker.csproj")
     .WaitFor(temporal)
     .WithReference(temporal);
 
-builder.AddProject<Projects.SampleClient>("sample-client")
+builder.AddDotnetProject("sample-client", "../SampleClient/SampleClient.csproj")
     .WaitFor(temporal)
     .WithReference(temporal);
 

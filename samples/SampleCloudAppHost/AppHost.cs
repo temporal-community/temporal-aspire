@@ -16,11 +16,11 @@ var temporal = builder.AddTemporalCloud(
     configure: options => options.EnableHealthCheck = true)
     .WithCliTerminal();
 
-builder.AddProject<Projects.SampleWorker>("sample-worker")
+builder.AddDotnetProject("sample-worker", "../SampleWorker/SampleWorker.csproj")
     .WaitFor(temporal)
     .WithReference(temporal);
 
-builder.AddProject<Projects.SampleClient>("sample-client")
+builder.AddDotnetProject("sample-client", "../SampleClient/SampleClient.csproj")
     .WaitFor(temporal)
     .WithReference(temporal);
 
