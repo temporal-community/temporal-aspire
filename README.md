@@ -13,7 +13,14 @@
 
 ## Install
 
-Requires .NET Aspire 17.0 or later and .NET 10 or 11. The examples using `AddDotnetProject` also require the `Aspire.Hosting.Dotnet` package in the AppHost.
+The package supports these AppHost target frameworks:
+
+| AppHost target framework | .NET SDK |
+| --- | --- |
+| `net10.0` | .NET 10 SDK |
+| `net11.0` | .NET 11 SDK |
+
+Both targets require .NET Aspire 17.0 or later. Building this repository requires the .NET 11 SDK because its default target framework is `net11.0`. The examples using `AddDotnetProject` also require the `Aspire.Hosting.Dotnet` package in the AppHost.
 
 ```bash
 dotnet add package TemporalCommunity.Aspire.Hosting
@@ -42,6 +49,26 @@ builder.Build().Run();
 - `TEMPORAL_ADDRESS`
 - `TEMPORAL_UI_ADDRESS` (when a UI address is configured)
 - `TEMPORAL_NAMESPACE`
+
+A worker can load those settings into Temporal SDK client options and pass them to its hosted worker:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Temporalio.Common.EnvConfig;
+using Temporalio.Extensions.Hosting;
+
+var builder = Host.CreateApplicationBuilder(args);
+var connectOptions = ClientEnvConfig.LoadClientConnectOptions();
+
+builder.Services.AddHostedTemporalWorker(taskQueue: "my-task-queue")
+    .ConfigureOptions(options => options.ClientOptions = connectOptions)
+    .AddWorkflow<MyWorkflow>();
+
+await builder.Build().RunAsync();
+```
+
+`MyWorkflow` is the workflow implementation registered by your worker.
 
 ## Other resource modes
 
@@ -107,7 +134,7 @@ builder.AddDotnetProject("worker", "../Worker/Worker.csproj")
 
 Use secret parameters for API keys and codec credentials. A UI address adds a **Temporal Dashboard** link in Aspire. `WithReference` supplies the Temporal connection environment variables to consuming projects, which can load them with `ClientEnvConfig.LoadClientConnectOptions()`.
 
-`EnableHealthCheck` verifies the endpoint, TLS, and credentials with `GetSystemInfo`; it does not verify worker or task-queue health.
+`EnableHealthCheck` is `false` by default, so the AppHost does not make remote health-check calls unless you opt in. Set it to `true` when you want Aspire to verify the endpoint, TLS, and credentials with `GetSystemInfo`, gate dependent resources using `.WaitFor(temporal)`, or enable the Cloud **Temporal Terminal** action. It does not verify worker or task-queue health.
 
 ## Persist local development state
 

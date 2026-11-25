@@ -33,8 +33,19 @@ Edit `.secrets.env` with your Cloud address, namespace, API key, and UI URL. The
 
 ```bash
 source .secrets.env
-dotnet tool run aspire -- start
+missing=()
+[[ -n "${Parameters__temporal_address:-}" ]] || missing+=("Parameters__temporal_address")
+[[ -n "${Parameters__temporal_namespace:-}" ]] || missing+=("Parameters__temporal_namespace")
+[[ -n "${Parameters__temporal_api_key:-}" ]] || missing+=("Parameters__temporal_api_key")
+[[ -n "${Parameters__temporal_ui_address:-}" ]] || missing+=("Parameters__temporal_ui_address")
+if ((${#missing[@]})); then
+  printf 'Missing required Cloud setting(s): %s\n' "${missing[*]}" >&2
+else
+  dotnet tool run aspire -- start
+fi
 ```
+
+The preflight reports only missing setting names, never their values. Replace all placeholder values in `.secrets.env.example` before starting the AppHost.
 
 The worker and client start after the Cloud connection health check succeeds. **Temporal Terminal** opens a local shell configured with the Cloud address, namespace, API key, and TLS; it requires the Temporal CLI on `PATH`.
 
