@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 jobs:
   build-and-test:
@@ -84,6 +85,16 @@ jobs:
       - name: Verify package assets
         if: matrix.os == 'ubuntu-latest'
         run: just pack-verify
+
+      - name: Publish unit test summary
+        uses: dorny/test-reporter@v2
+        if: always() && github.event.pull_request.head.repo.fork != true
+        with:
+          name: Unit tests (${{ matrix.os }})
+          path: tests/**/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false
+          fail-on-empty: false
 
       - name: Upload test results
         uses: actions/upload-artifact@v6
