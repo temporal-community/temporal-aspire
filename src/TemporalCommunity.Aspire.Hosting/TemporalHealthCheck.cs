@@ -17,20 +17,24 @@ public class TemporalHealthCheck(Func<CancellationToken, Task<ITemporalClient?>>
     /// <returns>A HealthCheckResult indicating whether the server is reachable and healthy.</returns>
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        var client = await clientAccessor(cancellationToken);
-        if (client is null)
-            return HealthCheckResult.Unhealthy("Temporal client not yet initialized");
-
         try
         {
+            var client = await clientAccessor(cancellationToken);
+            if (client is null)
+                return HealthCheckResult.Unhealthy("Temporal client not yet initialized");
+
             await client.WorkflowService.GetSystemInfoAsync(
                 new GetSystemInfoRequest(),
                 new RpcOptions { CancellationToken = cancellationToken });
             return HealthCheckResult.Healthy();
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception e)
         {
-            return HealthCheckResult.Unhealthy("Unable to reach Temporal server", e);
+            return HealthCheckResult.Unhealthy("Temporal health check failed; verify credentials.",e);
         }
     }
 }
