@@ -1,5 +1,8 @@
 {
   "appHost": {
     "path": "TemporalCommunity.Aspire.Hosting.TestAppHost.csproj"
+  },
+  "sdk": {
+    "version": "17.0.0"
   }
 }
